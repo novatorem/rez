@@ -1,7 +1,4 @@
-<script lang='ts'>
-	
+<script lang="ts">
 </script>
 
-<div class="bg-surface-50-900-token">
-    
-</div>
+<div class="bg-surface-50-900-token">Footer</div>
