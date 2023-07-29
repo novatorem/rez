@@ -11,6 +11,7 @@
 
 	let profileForm: HTMLFormElement;
 	let loading = false;
+	let username: string = profile?.username ?? '';
 	let fullName: string = profile?.full_name ?? '';
 	let avatarUrl: string = profile?.avatar_url ?? '';
 
@@ -56,6 +57,19 @@
 			</div>
 
 			<div>
+				<label for="fullName">User Name</label>
+				<input
+					class="input"
+					id="username"
+					title="Username"
+					type="text"
+					placeholder="friendlyGhost"
+					name="username"
+					value={form?.username ?? username}
+				/>
+			</div>
+
+			<div>
 				<label for="fullName">Display Name</label>
 				<input
 					class="input"
@@ -67,7 +81,6 @@
 					value={form?.fullName ?? fullName}
 				/>
 			</div>
-
 			<!-- <div>
 				<label for="username">Username</label>
 				<input id="username" name="username" type="text" value={form?.username ?? username} />
