@@ -5,13 +5,27 @@
 	import { ThemeSupa } from '@supabase/auth-ui-shared';
 
 	export let data;
-	export let form;
+	export let requestForm;
+	export let statusForm;
+
+	let { session, supabase, profile, requests } = data;
+	$: ({ session, supabase, profile, requests } = data);
 
 	let loading = false;
+	let updateStatusForm: HTMLFormElement;
 	let requestFriendshipForm: HTMLFormElement;
-	let friendEmail: string = '';
+	let friendUserName: string = '';
+	let status: string = profile?.status ?? '';
+	let requestArray: any[] = requests ?? [];
 
 	const requestFriendship: SubmitFunction = () => {
+		loading = true;
+		return async () => {
+			loading = false;
+		};
+	};
+
+	const updateStatus: SubmitFunction = () => {
 		loading = true;
 		return async () => {
 			loading = false;
@@ -38,27 +52,54 @@
 			</div>
 		</div>
 	{:else}
-		<div class="container h-full mx-auto flex justify-center items-center">
+		<div class="container h-full mx-auto flex justify-center items-center flex-col space-y-8">
 			<form
 				class="form-widget space-y-4"
 				method="post"
-				action="?/update"
+				action="?/updateStatus"
+				use:enhance={updateStatus}
+				bind:this={updateStatusForm}
+			>
+				<label for="status">Current status: {status}</label>
+				<div class="input-group input-group-divider grid-cols-[auto_1fr_auto]">
+					<input
+						class="input"
+						id="status"
+						type="text"
+						placeholder="Sleeping 💤"
+						name="status"
+						value={statusForm?.status ?? status}
+					/>
+					<button class="variant-filled-secondary" disabled={loading}>Update Status</button>
+				</div>
+			</form>
+
+			<form
+				class="form-widget space-y-4"
+				method="post"
+				action="?/requestFriendship"
 				use:enhance={requestFriendship}
 				bind:this={requestFriendshipForm}
 			>
 				<div class="input-group input-group-divider grid-cols-[auto_1fr_auto]">
 					<input
 						class="input"
-						id="friendEmail"
-						type="email"
-						placeholder="a.n.other@mail.com"
-						name="friendEmail"
-						value={form?.friendEmail ?? friendEmail}
-						autocomplete="email"
+						id="friendUserName"
+						type="text"
+						placeholder="friend's username"
+						name="friendUserName"
+						value={requestForm?.friendUserName ?? friendUserName}
 					/>
 					<button class="variant-filled-secondary" disabled={loading}>Sync Person</button>
 				</div>
 			</form>
+
+			{#each requestArray as request}
+				<div class="input-group input-group-divider grid-cols-[auto_1fr_auto]">
+					<p>{request.receiver}</p>
+					<button class="variant-filled-secondary" disabled={loading}>{request.status}</button>
+				</div>
+			{/each}
 		</div>
 	{/if}
 </div>

@@ -27,13 +27,11 @@
 	<nav class="list-nav">
 		<ul>
 			<li>
-				<div></div>
-				<LightSwitch />
+				<span class="badge"> <LightSwitch /></span>
 			</li>
 			<li>
 				<a href="/account" data-sveltekit-preload-data="hover" class={classesActive('/account')}>
 					<span class="badge">👤</span>
-					<span class="flex-auto">Profile</span>
 				</a>
 			</li>
 		</ul>

@@ -21,7 +21,6 @@ export const actions = {
 		const formData = await request.formData();
 		const fullName = formData.get('fullName') as string;
 		const username = formData.get('username') as string;
-		const status = formData.get('status') as string;
 		const avatarUrl = formData.get('avatarUrl') as string;
 
 		const session = await getSession();
@@ -30,7 +29,6 @@ export const actions = {
 			id: session?.user.id,
 			full_name: fullName,
 			username,
-			status,
 			avatar_url: avatarUrl,
 			updated_at: new Date()
 		});
@@ -39,7 +37,6 @@ export const actions = {
 			return fail(500, {
 				fullName,
 				username,
-				status,
 				avatarUrl
 			});
 		}
@@ -47,7 +44,6 @@ export const actions = {
 		return {
 			fullName,
 			username,
-			status,
 			avatarUrl
 		};
 	},
