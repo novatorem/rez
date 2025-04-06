@@ -1,0 +1,9 @@
+{
+    "recommendations": [
+        "svelte.svelte-vscode",
+        "catppuccin.catppuccin-vsc",
+        "catppuccin.catppuccin-vsc-icons",
+        "catppuccin.catppuccin-vsc-pack",
+        "donjayamanne.githistory"
+    ]
+}
