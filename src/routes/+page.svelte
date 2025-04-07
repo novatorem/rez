@@ -1,14 +1,11 @@
 <script lang="ts">
-	import ThemeSelect from '$lib/theme-select.svelte';
-  let { data } = $props()
-  let { colors } = $derived(data)
+	let { data } = $props();
+	let { colors } = $derived(data);
 </script>
 
-<ThemeSelect />
-
-<h1>Welcome to Supabase!</h1>
+<a href="/dashboard" class="btn btn-primary">Dashboard</a>
 <ul>
-  {#each colors as color (color.id)}
-    <li>{color.name}</li>
-  {/each}
+	{#each colors as color}
+		<li>{color.name}</li>
+	{/each}
 </ul>
