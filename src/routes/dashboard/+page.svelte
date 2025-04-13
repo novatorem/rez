@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ThemeSelect from '$lib/theme-select.svelte';
 	import { invalidate } from '$app/navigation';
 	import type { EventHandler } from 'svelte/elements';
 
@@ -25,7 +26,7 @@
 <h1>Private page for user: {user?.email}</h1>
 <h2>Notes</h2>
 <ul>
-	{#each notes as note (note.Id)}
+	{#each notes as note}
 		<li>{note.note}</li>
 	{/each}
 </ul>
@@ -35,3 +36,5 @@
 		<input name="note" type="text" />
 	</label>
 </form>
+
+<ThemeSelect />
