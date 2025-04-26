@@ -1,8 +1,36 @@
+// Set NODE_TLS_REJECT_UNAUTHORIZED=0 only in development mode
+// This allows self-signed certificates to be accepted
+if (process.env.NODE_ENV === 'development') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  console.log('⚠️ SSL certificate verification disabled for development');
+}
+
+import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public';
 import { themes } from '$lib/themes';
 import { createServerClient } from '@supabase/ssr';
 import { type Handle, redirect } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
-import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public';
+import https from 'node:https';
+
+// Create a custom agent that allows self-signed certificates in development
+const isDev = process.env.NODE_ENV === 'development';
+const httpsAgent = isDev
+  ? new https.Agent({ rejectUnauthorized: false })
+  : undefined;
+
+// Custom fetch function that uses our HTTPS agent in development
+const customFetch = (url: string, options: RequestInit = {}) => {
+  if (isDev) {
+    // In development, use node-fetch with our custom agent
+    return fetch(url, {
+      ...options,
+      // @ts-ignore - Agent is not in standard RequestInit but works with Node.js fetch
+      agent: httpsAgent
+    });
+  }
+  // In production, use the standard fetch
+  return fetch(url, options);
+};
 
 const supabase: Handle = async ({ event, resolve }) => {
   event.locals.supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
@@ -14,24 +42,33 @@ const supabase: Handle = async ({ event, resolve }) => {
         })
       },
     },
+    global: {
+      fetch: customFetch
+    }
   })
   event.locals.safeGetSession = async () => {
-    const {
-      data: { session },
-    } = await event.locals.supabase.auth.getSession()
-    if (!session) {
+    try {
+      const {
+        data: { session },
+      } = await event.locals.supabase.auth.getSession()
+      if (!session) {
+        return { session: null, user: null }
+      }
+
+      const {
+        data: { user },
+        error,
+      } = await event.locals.supabase.auth.getUser()
+      if (error) {
+        console.error("Error getting user:", error)
+        return { session: null, user: null }
+      }
+
+      return { session, user }
+    } catch (err) {
+      console.error("Session error:", err)
       return { session: null, user: null }
     }
-
-    const {
-      data: { user },
-      error,
-    } = await event.locals.supabase.auth.getUser()
-    if (error) {
-      return { session: null, user: null }
-    }
-
-    return { session, user }
   }
 
   return resolve(event, {
@@ -46,12 +83,12 @@ const authGuard: Handle = async ({ event, resolve }) => {
   event.locals.session = session
   event.locals.user = user
 
-  if (!event.locals.session && event.url.pathname.startsWith('/private')) {
+  if (!event.locals.session && event.url.pathname.startsWith('/dashboard')) {
     redirect(303, '/auth')
   }
 
   if (event.locals.session && event.url.pathname === '/auth') {
-    redirect(303, '/private')
+    redirect(303, '/dashboard')
   }
 
   return resolve(event)
@@ -59,9 +96,9 @@ const authGuard: Handle = async ({ event, resolve }) => {
 
 const themeHandler: Handle = async ({ event, resolve }) => {
   const theme = event.cookies.get('theme');
-  
+
   const isValidTheme = theme && themes.includes(theme);
-  
+
   const transformOptions = isValidTheme
     ? {
         transformPageChunk: ({ html }: { html: string }) => {
@@ -69,7 +106,7 @@ const themeHandler: Handle = async ({ event, resolve }) => {
         },
       }
     : {};
-    
+
   return resolve(event, transformOptions);
 };
 

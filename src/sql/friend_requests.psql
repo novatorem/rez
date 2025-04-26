@@ -1,0 +1,102 @@
+-- Create users table if it doesn't exist (this may already exist in your setup)
+CREATE TABLE IF NOT EXISTS "users" (
+  "id" UUID NOT NULL PRIMARY KEY,
+  "username" TEXT UNIQUE NOT NULL,
+  "email" TEXT UNIQUE,
+  "created_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create friendship requests table
+CREATE TABLE IF NOT EXISTS "friend_requests" (
+  "id" UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4 (),
+  "requester_id" UUID NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
+  "target_id" UUID NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
+  "status" TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'accepted', 'rejected'
+  "created_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  -- Ensure a user can't send multiple requests to the same person
+  UNIQUE ("requester_id", "target_id"),
+  -- Add check constraint to ensure user can't send request to themselves
+  CONSTRAINT check_not_self_request CHECK (requester_id != target_id)
+);
+
+-- Create friendship connections table (bidirectional relationships)
+CREATE TABLE IF NOT EXISTS "friends" (
+  "id" UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4 (),
+  "user_id" UUID NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
+  "friend_id" UUID NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
+  "created_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  -- Ensure a user can't be friends with themselves
+  CONSTRAINT check_not_self_friend CHECK (user_id != friend_id),
+  -- Ensure uniqueness of friendships
+  UNIQUE ("user_id", "friend_id")
+);
+
+-- Create update function for updated_at timestamp
+CREATE OR REPLACE FUNCTION update_timestamp () RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for friend_requests updated_at
+CREATE TRIGGER set_timestamp BEFORE
+UPDATE ON friend_requests FOR EACH ROW
+EXECUTE PROCEDURE update_timestamp ();
+
+-- Create Row Level Security (RLS) policies
+ALTER TABLE "friend_requests" ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE "friends" ENABLE ROW LEVEL SECURITY;
+
+-- Allow users to see their own friend requests (either as requester or target)
+CREATE POLICY "Users can see their own friend requests - as requester" ON "friend_requests" FOR
+SELECT
+  USING (auth.uid () = requester_id);
+
+CREATE POLICY "Users can see their own friend requests - as target" ON "friend_requests" FOR
+SELECT
+  USING (auth.uid () = target_id);
+
+-- Allow users to insert friend requests
+CREATE POLICY "Users can create friend requests" ON "friend_requests" FOR INSERT
+WITH
+  CHECK (auth.uid () = requester_id);
+
+-- Allow users to update friend requests they received
+CREATE POLICY "Users can update their received friend requests" ON "friend_requests"
+FOR UPDATE
+  USING (auth.uid () = target_id);
+
+-- Allow users to see their own friendships
+CREATE POLICY "Users can see their own friends" ON "friends" FOR
+SELECT
+  USING (auth.uid () = user_id);
+
+-- Allow users to create friendship records
+CREATE POLICY "Users can create friendship records" ON "friends" FOR INSERT
+WITH
+  CHECK (
+    auth.uid () = user_id
+    OR auth.uid () IN (
+      SELECT
+        requester_id
+      FROM
+        friend_requests
+      WHERE
+        id = NEW.id
+        AND status = 'accepted'
+    )
+  );
+
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_friend_requests_requester ON friend_requests (requester_id);
+
+CREATE INDEX IF NOT EXISTS idx_friend_requests_target ON friend_requests (target_id);
+
+CREATE INDEX IF NOT EXISTS idx_friend_requests_status ON friend_requests (status);
+
+CREATE INDEX IF NOT EXISTS idx_friends_user ON friends (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_friends_friend ON friends (friend_id);
