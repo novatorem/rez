@@ -4,15 +4,24 @@ export const load: PageServerLoad = async ({ depends, locals: { supabase, safeGe
   depends('supabase:db:status')
   depends('supabase:db:friend_requests')
   depends('supabase:db:friends')
+  depends('supabase:db:users')
+  depends('supabase:db:profiles')
 
   const { session } = await safeGetSession()
   const userId = session?.user.id
 
-  // Get user status
-  const { data: statusData } = await supabase
-    .from('user_status')
+  // Get user info including username from public.users table
+  const { data: userData } = await supabase
+    .from('users')
+    .select('username')
+    .eq('id', userId)
+    .single()
+
+  // Get user status from public.profiles table
+  const { data: profileData } = await supabase
+    .from('profiles')
     .select('status')
-    .eq('user_id', userId)
+    .eq('id', userId)
     .single()
 
   // Get incoming friend requests
@@ -51,7 +60,8 @@ export const load: PageServerLoad = async ({ depends, locals: { supabase, safeGe
   })) || []
 
   return {
-    currentStatus: statusData?.status || "",
+    currentUsername: userData?.username || "",
+    currentStatus: profileData?.status || "",
     friendRequests: formattedRequests,
     friends: formattedFriends
   }
