@@ -78,16 +78,7 @@ SELECT
 CREATE POLICY "Users can create friendship records" ON "friends" FOR INSERT
 WITH
   CHECK (
-    auth.uid () = user_id
-    OR auth.uid () IN (
-      SELECT
-        requester_id
-      FROM
-        friend_requests
-      WHERE
-        id = NEW.id
-        AND status = 'accepted'
-    )
+    auth.uid() = user_id
   );
 
 -- Create indexes for performance

@@ -4,7 +4,7 @@
 	import type { EventHandler } from 'svelte/elements';
 
 	let { data } = $props();
-	let { currentStatus, supabase, user, friendRequests, friends } = $derived(data);
+	let { currentStatus, supabase, user, friendRequests, friends, currentUsername } = $derived(data);
 
 	let statusText = $state('');
 	$effect(() => {
@@ -12,6 +12,14 @@
 	});
 	let statusCharacterCount = $derived(statusText.length);
 	const MAX_STATUS_LENGTH = 64;
+
+	let usernameText = $state('');
+	$effect(() => {
+		usernameText = currentUsername || '';
+	});
+	let usernameCharacterCount = $derived(usernameText.length);
+	const MAX_USERNAME_LENGTH = 20;
+	const USERNAME_PATTERN = /^[a-zA-Z0-9_]+$/;
 
 	const handleStatusUpdate: EventHandler<SubmitEvent, HTMLFormElement> = async (evt) => {
 		evt.preventDefault();
@@ -22,11 +30,14 @@
 			return;
 		}
 
-		// Upsert operation - insert if not exists, update if exists
-		const { error } = await supabase.from('user_status').upsert({
-			user_id: user.id,
-			status: statusText
-		});
+		// Upsert operation on profiles table - insert if not exists, update if exists
+		const { error } = await supabase.from('profiles').upsert(
+			{
+				id: user.id,
+				status: statusText
+			},
+			{ onConflict: 'id' }
+		);
 
 		if (error) {
 			console.error(error);
@@ -34,7 +45,7 @@
 			return;
 		}
 
-		invalidate('supabase:db:status');
+		invalidate('supabase:db:profiles');
 	};
 
 	const handleFriendRequest: EventHandler<SubmitEvent, HTMLFormElement> = async (evt) => {
@@ -54,8 +65,14 @@
 		const form = evt.target as HTMLFormElement;
 		const username = (new FormData(form).get('username') ?? '') as string;
 
-		// Remove @ prefix for storage
-		const targetUsername = username.substring(1);
+		// Remove @ prefix if present
+		const targetUsername = username.startsWith('@') ? username.substring(1) : username;
+
+		// Check if username is empty
+		if (!targetUsername.trim()) {
+			alert('Please enter a valid username');
+			return;
+		}
 
 		// Check if user exists
 		const { data: targetUser, error: userError } = await supabase
@@ -146,6 +163,63 @@
 		invalidate('supabase:db:friend_requests');
 		invalidate('supabase:db:friends');
 	};
+
+	const handleUsernameUpdate: EventHandler<SubmitEvent, HTMLFormElement> = async (evt) => {
+		evt.preventDefault();
+		if (!evt.target || !user || !supabase) return;
+
+		if (usernameText.length === 0) {
+			alert('Username cannot be empty');
+			return;
+		}
+
+		if (usernameText.length > MAX_USERNAME_LENGTH) {
+			alert(`Username must be ${MAX_USERNAME_LENGTH} characters or less`);
+			return;
+		}
+
+		if (!USERNAME_PATTERN.test(usernameText)) {
+			alert('Username can only contain letters, numbers, and underscores');
+			return;
+		}
+
+		// Check if username is already taken
+		const { data: existingUser, error: checkError } = await supabase
+			.from('users')
+			.select('id')
+			.eq('username', usernameText)
+			.neq('id', user.id) // Exclude current user
+			.single();
+
+		if (checkError && checkError.code !== 'PGRST116') {
+			// PGRST116 = 'No rows returned'
+			console.error(checkError);
+			alert('Error checking username availability');
+			return;
+		}
+
+		if (existingUser) {
+			alert('Username is already taken');
+			return;
+		}
+
+		// Update username
+		const { error: updateError } = await supabase
+			.from('users')
+			.update({
+				username: usernameText
+			})
+			.eq('id', user.id);
+
+		if (updateError) {
+			console.error(updateError);
+			alert('Failed to update username');
+			return;
+		}
+
+		invalidate('supabase:db:users');
+		alert('Username updated successfully');
+	};
 </script>
 
 <div class="p-4">
@@ -154,6 +228,48 @@
 	<div class="divider"></div>
 
 	<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+		<!-- Username Section -->
+		<div class="card bg-base-200">
+			<div class="card-body">
+				<h2 class="card-title">Username</h2>
+
+				{#if currentUsername}
+					<div class="bg-base-300 mb-4 rounded-lg p-3">
+						<p class="text-lg">@{currentUsername}</p>
+					</div>
+				{/if}
+
+				<form onsubmit={handleUsernameUpdate} class="mt-4">
+					<div class="form-control">
+						<label class="label" for="username-input">
+							<span>{currentUsername ? 'Personalize' : 'Set'} your username</span>
+							<span
+								class="text-sm {usernameCharacterCount > MAX_USERNAME_LENGTH ? 'text-error' : ''}"
+							>
+								{usernameCharacterCount}/{MAX_USERNAME_LENGTH}
+							</span>
+						</label>
+						<div class="input">
+							<span>@</span>
+							<input
+								id="username-input"
+								bind:value={usernameText}
+								class={usernameText && !USERNAME_PATTERN.test(usernameText) ? 'input-error' : ''}
+								placeholder="username"
+								maxlength={MAX_USERNAME_LENGTH}
+							/>
+						</div>
+						<div class="text-base-content mt-1 text-xs">
+							Only letters, numbers, and underscores allowed
+						</div>
+					</div>
+					<button class="btn btn-primary mt-2">
+						{currentUsername ? 'Update Username' : 'Set Username'}
+					</button>
+				</form>
+			</div>
+		</div>
+
 		<!-- Status Section -->
 		<div class="card bg-base-200">
 			<div class="card-body">
@@ -169,9 +285,7 @@
 					<div class="form-control">
 						<label class="label" for="status-textarea">
 							<span>Update your status</span>
-							<span
-								class="text-sm {statusCharacterCount > MAX_STATUS_LENGTH ? 'text-error' : ''}"
-							>
+							<span class="text-sm {statusCharacterCount > MAX_STATUS_LENGTH ? 'text-error' : ''}">
 								{statusCharacterCount}/{MAX_STATUS_LENGTH}
 							</span>
 						</label>
