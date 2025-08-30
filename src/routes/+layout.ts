@@ -43,14 +43,54 @@ export const load: LayoutLoad = async ({ data, depends, fetch }) => {
      */
     const {
       data: { session },
+      error: sessionError
     } = await supabase.auth.getSession()
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    // Handle refresh token errors gracefully
+    if (sessionError && sessionError.message?.includes('refresh_token_not_found')) {
+      // Clear invalid tokens silently
+      if (isBrowser()) {
+        await supabase.auth.signOut({ scope: 'local' })
+      }
+      return { session: null, supabase, user: null }
+    }
+
+    let user = null
+    if (session) {
+      try {
+        const {
+          data: { user: fetchedUser },
+          error: userError
+        } = await supabase.auth.getUser()
+
+        if (userError && userError.message?.includes('refresh_token_not_found')) {
+          // Clear invalid tokens silently
+          if (isBrowser()) {
+            await supabase.auth.signOut({ scope: 'local' })
+          }
+          return { session: null, supabase, user: null }
+        }
+
+        user = fetchedUser
+      } catch (err: any) {
+        // Handle auth errors silently
+        if (err.__isAuthError && err.code === 'refresh_token_not_found') {
+          if (isBrowser()) {
+            await supabase.auth.signOut({ scope: 'local' })
+          }
+          return { session: null, supabase, user: null }
+        }
+        throw err // Re-throw unexpected errors
+      }
+    }
 
     return { session, supabase, user }
-  } catch (err) {
+  } catch (err: any) {
+    // Handle auth errors gracefully
+    if (err.__isAuthError && (err.code === 'refresh_token_not_found' || err.message?.includes('Invalid Refresh Token'))) {
+      return { session: null, supabase: null, user: null }
+    }
+
     console.error("Error in layout load:", err)
     return { session: null, supabase: null, user: null }
   }
