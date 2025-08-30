@@ -2,7 +2,7 @@
 // This allows self-signed certificates to be accepted
 if (process.env.NODE_ENV === 'development') {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-  console.log('⚠️ SSL certificate verification disabled for development');
+  console.log('⚠️\tSSL certificate verification disabled for development');
 }
 
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public';
@@ -24,7 +24,7 @@ const customFetch = (url: string, options: RequestInit = {}) => {
     // In development, use node-fetch with our custom agent
     return fetch(url, {
       ...options,
-      // @ts-ignore - Agent is not in standard RequestInit but works with Node.js fetch
+      // @ts-expect-error - Agent is not in standard RequestInit but works with Node.js fetch
       agent: httpsAgent
     });
   }
@@ -46,27 +46,60 @@ const supabase: Handle = async ({ event, resolve }) => {
       fetch: customFetch
     }
   })
+
   event.locals.safeGetSession = async () => {
     try {
       const {
         data: { session },
+        error: sessionError
       } = await event.locals.supabase.auth.getSession()
+
+      // If there's a session error, especially refresh token errors, clear and return null
+      if (sessionError) {
+        // Only log non-refresh-token errors to avoid spam in development
+        if (sessionError.message && !sessionError.message.includes('refresh_token_not_found') && !sessionError.message.includes('Invalid Refresh Token')) {
+          console.error("Session error:", sessionError)
+        }
+
+        // Clear invalid tokens by signing out silently
+        await event.locals.supabase.auth.signOut({ scope: 'local' })
+        return { session: null, user: null }
+      }
+
       if (!session) {
         return { session: null, user: null }
       }
 
       const {
         data: { user },
-        error,
+        error: userError,
       } = await event.locals.supabase.auth.getUser()
-      if (error) {
-        console.error("Error getting user:", error)
+
+      if (userError) {
+        // Only log non-refresh-token errors
+        if (userError.message && !userError.message.includes('refresh_token_not_found') && !userError.message.includes('Invalid Refresh Token')) {
+          console.error("Error getting user:", userError)
+        }
+
+        // Clear invalid tokens and return null
+        await event.locals.supabase.auth.signOut({ scope: 'local' })
         return { session: null, user: null }
       }
 
       return { session, user }
-    } catch (err) {
-      console.error("Session error:", err)
+    } catch (err: any) {
+      // Only log unexpected errors, not auth-related ones
+      if (err.__isAuthError && (err.code === 'refresh_token_not_found' || err.message?.includes('Invalid Refresh Token'))) {
+        // Silently handle refresh token errors - clear and return null
+        try {
+          await event.locals.supabase.auth.signOut({ scope: 'local' })
+        } catch {
+          // Ignore errors when clearing tokens
+        }
+        return { session: null, user: null }
+      }
+
+      console.error("Unexpected session error:", err)
       return { session: null, user: null }
     }
   }
@@ -94,6 +127,19 @@ const authGuard: Handle = async ({ event, resolve }) => {
   return resolve(event)
 }
 
+// Handle Chrome DevTools requests to prevent 404 errors
+const handleDevToolsRequests: Handle = async ({ event, resolve }) => {
+  // Check if the request is for Chrome DevTools specific endpoints
+  if (event.url.pathname.includes('/.well-known/appspecific/com.chrome.devtools')) {
+    return new Response(JSON.stringify({ message: 'Not implemented' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  return resolve(event);
+};
+
 const themeHandler: Handle = async ({ event, resolve }) => {
   const theme = event.cookies.get('theme');
 
@@ -110,4 +156,4 @@ const themeHandler: Handle = async ({ event, resolve }) => {
   return resolve(event, transformOptions);
 };
 
-export const handle: Handle = sequence(supabase, authGuard, themeHandler);
+export const handle: Handle = sequence(supabase, authGuard, handleDevToolsRequests, themeHandler);

@@ -4,7 +4,15 @@
 	import type { EventHandler } from 'svelte/elements';
 
 	let { data } = $props();
-	let { currentStatus, supabase, user, friendRequests, friends, currentUsername } = $derived(data);
+	let {
+		currentStatus,
+		supabase,
+		user,
+		friendRequests,
+		sentFriendRequests,
+		friends,
+		currentUsername
+	} = $derived(data);
 
 	let statusText = $state('');
 	$effect(() => {
@@ -83,6 +91,106 @@
 
 		if (userError || !targetUser) {
 			alert('User not found');
+			return;
+		}
+
+		// Check if they're trying to send a request to themselves
+		if (targetUser.id === user.id) {
+			alert("You can't send a friend request to yourself");
+			return;
+		}
+
+		// Check if they're already friends (check both directions since friendships are bidirectional)
+		const { data: existingFriendship, error: friendshipError } = await supabase
+			.from('friends')
+			.select('id')
+			.or(
+				`and(user_id.eq.${user.id},friend_id.eq.${targetUser.id}),and(user_id.eq.${targetUser.id},friend_id.eq.${user.id})`
+			)
+			.single();
+
+		if (friendshipError && friendshipError.code !== 'PGRST116') {
+			console.error(friendshipError);
+			alert('Error checking friendship status');
+			return;
+		}
+
+		if (existingFriendship) {
+			alert('You are already friends with this user');
+			return;
+		}
+
+		// Check for existing friend request
+		const { data: existingRequest, error: requestError } = await supabase
+			.from('friend_requests')
+			.select('id, status')
+			.eq('requester_id', user.id)
+			.eq('target_id', targetUser.id)
+			.single();
+
+		if (requestError && requestError.code !== 'PGRST116') {
+			console.error(requestError);
+			alert('Error checking existing requests');
+			return;
+		}
+
+		if (existingRequest) {
+			if (existingRequest.status === 'pending') {
+				alert('Friend request already sent and is pending');
+				return;
+			} else if (existingRequest.status === 'rejected') {
+				// Update the existing rejected request to pending instead of creating a new one
+				const { error: updateError } = await supabase
+					.from('friend_requests')
+					.update({ status: 'pending' })
+					.eq('id', existingRequest.id);
+
+				if (updateError) {
+					console.error(updateError);
+					alert('Failed to send friend request');
+					return;
+				}
+
+				invalidate('supabase:db:friend_requests');
+				form.reset();
+				alert('Friend request sent!');
+				return;
+			} else if (existingRequest.status === 'accepted') {
+				// If there's an accepted request but no friendship (orphaned data), clean it up
+				const { data: verifyFriendship } = await supabase
+					.from('friends')
+					.select('id')
+					.or(
+						`and(user_id.eq.${user.id},friend_id.eq.${targetUser.id}),and(user_id.eq.${targetUser.id},friend_id.eq.${user.id})`
+					)
+					.single();
+
+				if (verifyFriendship) {
+					alert('You are already friends with this user');
+					return;
+				} else {
+					// Clean up orphaned accepted request and allow new request
+					await supabase.from('friend_requests').delete().eq('id', existingRequest.id);
+				}
+			}
+		}
+
+		// Check if the target user has already sent a request to this user
+		const { data: incomingRequest, error: incomingError } = await supabase
+			.from('friend_requests')
+			.select('id, status')
+			.eq('requester_id', targetUser.id)
+			.eq('target_id', user.id)
+			.single();
+
+		if (incomingError && incomingError.code !== 'PGRST116') {
+			console.error(incomingError);
+			alert('Error checking incoming requests');
+			return;
+		}
+
+		if (incomingRequest && incomingRequest.status === 'pending') {
+			alert('This user has already sent you a friend request. Check your pending requests!');
 			return;
 		}
 
@@ -220,6 +328,67 @@
 		invalidate('supabase:db:users');
 		alert('Username updated successfully');
 	};
+
+	const handleDeleteFriend = async (friendId: string) => {
+		if (!supabase || !user) {
+			alert('Database connection not available');
+			return;
+		}
+
+		// Confirm deletion
+		if (!confirm('Are you sure you want to remove this friend?')) {
+			return;
+		}
+
+		// Delete both directions of the friendship
+		const { error } = await supabase
+			.from('friends')
+			.delete()
+			.or(
+				`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`
+			);
+
+		if (error) {
+			console.error('Delete error:', error);
+			alert(`Failed to remove friend: ${error.message}`);
+			return;
+		}
+		invalidate('supabase:db:friends');
+		alert('Friend removed successfully');
+	};
+
+	const handleCancelFriendRequest = async (requestId: string) => {
+		if (!supabase || !user) {
+			alert('Database connection not available');
+			return;
+		}
+
+		// Confirm cancellation
+		if (!confirm('Are you sure you want to cancel this friend request?')) {
+			return;
+		}
+
+		// Delete the friend request
+		const { error } = await supabase
+			.from('friend_requests')
+			.delete()
+			.eq('id', requestId)
+			.eq('requester_id', user.id); // Ensure user can only cancel their own requests
+
+		if (error) {
+			console.error('Cancel error:', error);
+			alert(`Failed to cancel friend request: ${error.message}`);
+			return;
+		}
+
+		console.log('Friend request deleted successfully, invalidating cache...');
+
+		// Invalidate all related caches to ensure UI updates
+		await invalidate('supabase:db:friend_requests');
+		await invalidate('supabase:db:users');
+
+		alert('Friend request cancelled successfully');
+	};
 </script>
 
 <div class="p-4">
@@ -347,14 +516,62 @@
 					</ul>
 				{/if}
 
+				<!-- Sent Friend Requests -->
+				{#if sentFriendRequests && sentFriendRequests.length > 0}
+					<h3 class="mt-4 font-bold">Sent Friend Requests</h3>
+					<ul class="list">
+						{#each sentFriendRequests as request (request.id)}
+							<li class="list-row bg-base-300 rounded-box mb-2 p-2">
+								<div class="flex items-center justify-between">
+									<div class="flex flex-col">
+										<span>@{request.target_username}</span>
+										<div
+											class="badge {request.status === 'pending'
+												? 'badge-warning'
+												: request.status === 'accepted'
+													? 'badge-success'
+													: 'badge-neutral'}"
+										>
+											{request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+										</div>
+									</div>
+									{#if request.status === 'pending'}
+										<button
+											class="btn btn-sm btn-error"
+											onclick={() => handleCancelFriendRequest(request.id)}
+										>
+											Cancel
+										</button>
+									{/if}
+								</div>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+
 				<!-- Friends List -->
 				<h3 class="mt-4 font-bold">My Friends</h3>
 				<ul class="list">
 					{#if friends && friends.length > 0}
 						{#each friends as friend (friend.id)}
-							<li class="list-row">@{friend.username}</li>
-						{:else}
-							<li class="list-row">No friends yet. Send some requests!</li>
+							<li class="list-row bg-base-300 rounded-box mb-2 p-2">
+								<div class="flex items-center justify-between">
+									<div class="flex flex-col">
+										<span class="font-medium">@{friend.username}</span>
+										{#if friend.status}
+											<span class="text-base-content/70 text-sm">{friend.status}</span>
+										{:else}
+											<span class="text-base-content/50 text-sm italic">No status</span>
+										{/if}
+									</div>
+									<button
+										class="btn btn-sm btn-error"
+										onclick={() => handleDeleteFriend(friend.id)}
+									>
+										Remove
+									</button>
+								</div>
+							</li>
 						{/each}
 					{:else}
 						<li class="list-row">No friends yet. Send some requests!</li>

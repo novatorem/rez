@@ -69,17 +69,28 @@ CREATE POLICY "Users can update their received friend requests" ON "friend_reque
 FOR UPDATE
   USING (auth.uid () = target_id);
 
--- Allow users to see their own friendships
+-- Allow users to delete their own friend requests (as requester)
+CREATE POLICY "Users can delete their own friend requests" ON "friend_requests"
+FOR DELETE
+  USING (auth.uid () = requester_id);
+
+-- Allow users to see their own friendships (both directions)
 CREATE POLICY "Users can see their own friends" ON "friends" FOR
 SELECT
-  USING (auth.uid () = user_id);
+  USING (auth.uid () = user_id OR auth.uid () = friend_id);
 
 -- Allow users to create friendship records
 CREATE POLICY "Users can create friendship records" ON "friends" FOR INSERT
 WITH
   CHECK (
-    auth.uid() = user_id
+    auth.uid() = user_id OR auth.uid() = friend_id
   );
+
+-- Allow users to delete their own friendships
+CREATE POLICY "Users can delete their own friendships" ON "friends" FOR DELETE
+USING (
+  auth.uid() = user_id OR auth.uid() = friend_id
+);
 
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_friend_requests_requester ON friend_requests (requester_id);

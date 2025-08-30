@@ -3,3 +3,18 @@
  * directory. It makes the routes in this directory _dynamic_ routes, which
  * send a server request, and thus trigger `hooks.server.ts`.
  **/
+
+import { redirect } from '@sveltejs/kit';
+import type { LayoutServerLoad } from './$types';
+
+export const load: LayoutServerLoad = async ({ locals: { safeGetSession } }) => {
+	const { session } = await safeGetSession();
+
+	if (!session) {
+		redirect(303, '/');
+	}
+
+	return {
+		session
+	};
+};

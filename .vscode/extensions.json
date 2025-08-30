@@ -4,7 +4,7 @@
         "catppuccin.catppuccin-vsc",
         "catppuccin.catppuccin-vsc-icons",
         "catppuccin.catppuccin-vsc-pack",
-        "donjayamanne.githistory",
-        "ckolkman.vscode-postgres"
+				"donjayamanne.githistory",
+				"ckolkman.vscode-postgres"
     ]
 }
