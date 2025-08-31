@@ -47,7 +47,7 @@ export const load: PageServerLoad = async ({ depends, locals: { supabase, safeGe
       created_at
     `)
     .eq('requester_id', userId)
-    .in('status', ['pending', 'accepted'])
+    .eq('status', 'pending')
 
   // Format friend requests for easier use in the template
   const formattedRequests = friendRequests?.map(request => ({
@@ -65,17 +65,52 @@ export const load: PageServerLoad = async ({ depends, locals: { supabase, safeGe
     created_at: request.created_at
   })) || []
 
-  // Get all accepted friends (both directions)
-  const { data: friends } = await supabase
+  // Ensure uniqueness of friend requests by ID
+  const uniqueFriendRequests = formattedRequests.filter((request, index, self) =>
+    index === self.findIndex(r => r.id === request.id)
+  );
+
+  const uniqueSentFriendRequests = formattedSentRequests.filter((request, index, self) =>
+    index === self.findIndex(r => r.id === request.id)
+  );
+
+  // Debug logging to identify duplicates
+  if (formattedRequests.length !== uniqueFriendRequests.length) {
+    console.log(`Found ${formattedRequests.length - uniqueFriendRequests.length} duplicate friend requests`);
+    console.log('Duplicate IDs:', formattedRequests.filter((request, index, self) =>
+      index !== self.findIndex(r => r.id === request.id)
+    ).map(r => r.id));
+  }
+  if (formattedSentRequests.length !== uniqueSentFriendRequests.length) {
+    console.log(`Found ${formattedSentRequests.length - uniqueSentFriendRequests.length} duplicate sent friend requests`);
+    console.log('Duplicate IDs:', formattedSentRequests.filter((request, index, self) =>
+      index !== self.findIndex(r => r.id === request.id)
+    ).map(r => r.id));
+  }
+
+  // Get all accepted friends - query both directions but handle carefully to avoid duplicates
+  const { data: friendsAsUser } = await supabase
     .from('friends')
     .select(`
       id,
       user_id,
       friend_id,
-      user:user_id(id, username, email),
       friend:friend_id(id, username, email)
     `)
-    .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+    .eq('user_id', userId)
+
+  const { data: friendsAsFriend } = await supabase
+    .from('friends')
+    .select(`
+      id,
+      user_id,
+      friend_id,
+      user:user_id(id, username, email)
+    `)
+    .eq('friend_id', userId)
+
+  // Combine both directions
+  const friends = [...(friendsAsUser || []), ...(friendsAsFriend || [])]
 
   // Get friend IDs to fetch their statuses
   const friendIds = friends?.map(friend => {
@@ -94,8 +129,8 @@ export const load: PageServerLoad = async ({ depends, locals: { supabase, safeGe
 
   // Format friends for easier use in the template
   const formattedFriends = friends?.map(friend => {
-    // Determine which user is the friend (not the current user)
-    const friendUser = friend.user_id === userId ? friend.friend : friend.user;
+    // Determine which user is the friend based on the query direction
+    const friendUser = friend.friend || friend.user;
     return {
       id: friendUser.id,
       username: friendUser.username,
@@ -104,11 +139,24 @@ export const load: PageServerLoad = async ({ depends, locals: { supabase, safeGe
     };
   }) || []
 
+  // Ensure uniqueness of friends by ID
+  const uniqueFriends = formattedFriends.filter((friend, index, self) =>
+    index === self.findIndex(f => f.id === friend.id)
+  );
+
+  // Debug logging to identify duplicates
+  if (formattedFriends.length !== uniqueFriends.length) {
+    console.log(`Found ${formattedFriends.length - uniqueFriends.length} duplicate friends`);
+    console.log('Duplicate IDs:', formattedFriends.filter((friend, index, self) =>
+      index !== self.findIndex(f => f.id === friend.id)
+    ).map(f => f.id));
+  }
+
   return {
     currentUsername: userData?.username || "",
     currentStatus: profileData?.status || "",
-    friendRequests: formattedRequests,
-    sentFriendRequests: formattedSentRequests,
-    friends: formattedFriends
+    friendRequests: uniqueFriendRequests,
+    sentFriendRequests: uniqueSentFriendRequests,
+    friends: uniqueFriends
   }
 }
