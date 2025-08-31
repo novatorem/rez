@@ -14,14 +14,14 @@
 		currentUsername
 	} = $derived(data);
 
-	let statusText = $state('');
+	let statusText = $derived('');
 	$effect(() => {
 		statusText = currentStatus || '';
 	});
 	let statusCharacterCount = $derived(statusText.length);
 	const MAX_STATUS_LENGTH = 64;
 
-	let usernameText = $state('');
+	let usernameText = $derived('');
 	$effect(() => {
 		usernameText = currentUsername || '';
 	});
@@ -101,19 +101,23 @@
 		}
 
 		// Check if they're already friends (check both directions since friendships are bidirectional)
-		const { data: existingFriendship, error: friendshipError } = await supabase
+		const { data: existingFriendship1 } = await supabase
 			.from('friends')
 			.select('id')
-			.or(
-				`and(user_id.eq.${user.id},friend_id.eq.${targetUser.id}),and(user_id.eq.${targetUser.id},friend_id.eq.${user.id})`
-			)
+			.eq('user_id', user.id)
+			.eq('friend_id', targetUser.id)
 			.single();
 
-		if (friendshipError && friendshipError.code !== 'PGRST116') {
-			console.error(friendshipError);
-			alert('Error checking friendship status');
-			return;
-		}
+		const { data: existingFriendship2 } = await supabase
+			.from('friends')
+			.select('id')
+			.eq('user_id', targetUser.id)
+			.eq('friend_id', user.id)
+			.single();
+
+		const existingFriendship = existingFriendship1 || existingFriendship2;
+
+		// No need to check for errors since we're using .single() which returns null if no match found
 
 		if (existingFriendship) {
 			alert('You are already friends with this user');
@@ -157,13 +161,21 @@
 				return;
 			} else if (existingRequest.status === 'accepted') {
 				// If there's an accepted request but no friendship (orphaned data), clean it up
-				const { data: verifyFriendship } = await supabase
+				const { data: verifyFriendship1 } = await supabase
 					.from('friends')
 					.select('id')
-					.or(
-						`and(user_id.eq.${user.id},friend_id.eq.${targetUser.id}),and(user_id.eq.${targetUser.id},friend_id.eq.${user.id})`
-					)
+					.eq('user_id', user.id)
+					.eq('friend_id', targetUser.id)
 					.single();
+
+				const { data: verifyFriendship2 } = await supabase
+					.from('friends')
+					.select('id')
+					.eq('user_id', targetUser.id)
+					.eq('friend_id', user.id)
+					.single();
+
+				const verifyFriendship = verifyFriendship1 || verifyFriendship2;
 
 				if (verifyFriendship) {
 					alert('You are already friends with this user');
@@ -238,8 +250,21 @@
 				.eq('id', requestId)
 				.single();
 
-			if (requestError || !request) {
+			if (requestError) {
 				console.error(requestError);
+				// Check if the error is due to the request no longer existing
+				if (requestError.code === 'PGRST116') {
+					alert(
+						'This friend request no longer exists. It may have been cancelled by the sender. Please refresh the page to see the current state.'
+					);
+				} else {
+					alert('Failed to process friend request. Please try again.');
+				}
+				return;
+			}
+
+			if (!request) {
+				alert('Friend request data not found. Please refresh the page.');
 				return;
 			}
 
@@ -253,6 +278,18 @@
 				console.error(friendError);
 				alert('Failed to create friendship');
 				return;
+			}
+
+			// Delete the accepted friend request since friendship is now established
+			const { error: deleteError } = await supabase
+				.from('friend_requests')
+				.delete()
+				.eq('id', requestId);
+
+			if (deleteError) {
+				console.error(deleteError);
+				// Don't fail the whole operation if deletion fails, just log it
+				console.warn('Failed to delete accepted friend request, but friendship was created');
 			}
 		} else {
 			// Simply update the status to rejected
@@ -268,8 +305,10 @@
 			}
 		}
 
-		invalidate('supabase:db:friend_requests');
-		invalidate('supabase:db:friends');
+		// Invalidate all related caches to ensure both users see the updated state
+		await invalidate('supabase:db:friend_requests');
+		await invalidate('supabase:db:friends');
+		await invalidate('supabase:db:users');
 	};
 
 	const handleUsernameUpdate: EventHandler<SubmitEvent, HTMLFormElement> = async (evt) => {
@@ -340,20 +379,107 @@
 			return;
 		}
 
+		console.log(`Removing friendship between user ${user.id} and friend ${friendId}`);
+
 		// Delete both directions of the friendship
-		const { error } = await supabase
+		let { error, count } = await supabase
 			.from('friends')
 			.delete()
-			.or(
-				`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`
-			);
+			.eq('user_id', user.id)
+			.eq('friend_id', friendId);
+
+		// Also delete the reverse direction
+		const { error: error2, count: count2 } = await supabase
+			.from('friends')
+			.delete()
+			.eq('user_id', friendId)
+			.eq('friend_id', user.id);
+
+		// Combine the results
+		if (error2) {
+			error = error2;
+		}
+		count = (count || 0) + (count2 || 0);
 
 		if (error) {
-			console.error('Delete error:', error);
-			alert(`Failed to remove friend: ${error.message}`);
-			return;
+			console.error('Combined delete error:', error);
+			console.log('Attempting to delete each direction separately...');
+
+			// Fallback: try to delete each direction separately
+			let totalDeleted = 0;
+
+			// Delete friendship where current user is user_id
+			const { error: error1, count: count1 } = await supabase
+				.from('friends')
+				.delete()
+				.eq('user_id', user.id)
+				.eq('friend_id', friendId);
+
+			if (error1) {
+				console.error('Error deleting friendship (user_id direction):', error1);
+			} else {
+				totalDeleted += count1 || 0;
+				console.log(`Deleted ${count1} friendship record(s) in user_id direction`);
+			}
+
+			// Delete friendship where current user is friend_id
+			const { error: error2, count: count2 } = await supabase
+				.from('friends')
+				.delete()
+				.eq('user_id', friendId)
+				.eq('friend_id', user.id);
+
+			if (error2) {
+				console.error('Error deleting friendship (friend_id direction):', error2);
+			} else {
+				totalDeleted += count2 || 0;
+				console.log(`Deleted ${count2} friendship record(s) in friend_id direction`);
+			}
+
+			if (totalDeleted === 0) {
+				alert('Failed to remove friend. Please try again or contact support.');
+				return;
+			}
+
+			count = totalDeleted;
 		}
-		invalidate('supabase:db:friends');
+
+		console.log(`Successfully deleted ${count} friendship records`);
+
+		// Verify that the friendship was actually removed
+		const { data: verifyFriendship1 } = await supabase
+			.from('friends')
+			.select('id')
+			.eq('user_id', user.id)
+			.eq('friend_id', friendId);
+
+		const { data: verifyFriendship2 } = await supabase
+			.from('friends')
+			.select('id')
+			.eq('user_id', friendId)
+			.eq('friend_id', user.id);
+
+		const verifyFriendship = [...(verifyFriendship1 || []), ...(verifyFriendship2 || [])];
+
+		if (verifyFriendship && verifyFriendship.length > 0) {
+			console.warn('Friendship still exists after deletion attempt:', verifyFriendship);
+		} else {
+			console.log('Friendship successfully verified as removed');
+		}
+
+		// Invalidate all related caches to ensure both users see the updated state
+		console.log('Invalidating caches...');
+		await invalidate('supabase:db:friends');
+		await invalidate('supabase:db:friend_requests');
+		await invalidate('supabase:db:users');
+		console.log('Cache invalidation complete');
+
+		// Force a page refresh to ensure the UI is immediately updated
+		// This is a fallback in case cache invalidation doesn't work immediately
+		setTimeout(() => {
+			window.location.reload();
+		}, 1000);
+
 		alert('Friend removed successfully');
 	};
 
@@ -383,8 +509,9 @@
 
 		console.log('Friend request deleted successfully, invalidating cache...');
 
-		// Invalidate all related caches to ensure UI updates
+		// Invalidate all related caches to ensure both users see the updated state
 		await invalidate('supabase:db:friend_requests');
+		await invalidate('supabase:db:friends');
 		await invalidate('supabase:db:users');
 
 		alert('Friend request cancelled successfully');
@@ -523,26 +650,13 @@
 						{#each sentFriendRequests as request (request.id)}
 							<li class="list-row bg-base-300 rounded-box mb-2 p-2">
 								<div class="flex items-center justify-between">
-									<div class="flex flex-col">
-										<span>@{request.target_username}</span>
-										<div
-											class="badge {request.status === 'pending'
-												? 'badge-warning'
-												: request.status === 'accepted'
-													? 'badge-success'
-													: 'badge-neutral'}"
-										>
-											{request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-										</div>
-									</div>
-									{#if request.status === 'pending'}
-										<button
-											class="btn btn-sm btn-error"
-											onclick={() => handleCancelFriendRequest(request.id)}
-										>
-											Cancel
-										</button>
-									{/if}
+									<span>@{request.target_username}</span>
+									<button
+										class="btn btn-sm btn-error"
+										onclick={() => handleCancelFriendRequest(request.id)}
+									>
+										Cancel
+									</button>
 								</div>
 							</li>
 						{/each}
