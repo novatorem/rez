@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { invalidate } from '$app/navigation';
+	import Footer from '$lib/Footer.svelte';
+	import ToastContainer from '$lib/ToastContainer.svelte';
 	import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 	import { themeChange } from 'theme-change';
 	import '../app.css';
@@ -42,9 +44,6 @@
 		{@render children()}
 	</main>
 
-	<footer class="footer footer-center bg-base-300 text-base-content p-4">
-		<div>
-			<p>Copyright © {new Date().getFullYear()} - All right reserved by MyApp Industries Ltd</p>
-		</div>
-	</footer>
+	<Footer />
+	<ToastContainer />
 </div>
