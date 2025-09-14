@@ -33,5 +33,5 @@ export const themes = [
 	'synthwave',
 	'valentine',
 	'winter',
-	'wireframe',
-]
+	'wireframe'
+];
