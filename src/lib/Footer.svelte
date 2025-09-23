@@ -1,4 +1,4 @@
-<footer class="footer sm:footer-horizontal bg-neutral text-neutral-content items-center p-4">
+<footer class="footer footer-horizontal bg-neutral text-neutral-content items-center p-4">
 	<aside class="grid-flow-col items-center">
 		<svg
 			width="36"
@@ -19,7 +19,7 @@
 		</svg>
 		<p>rezonate with others</p>
 	</aside>
-	<nav class="grid-flow-col gap-4 md:place-self-center md:justify-self-end">
+	<nav class="grid-flow-col gap-4 place-self-center justify-self-end">
 		<a aria-label="Mail" href="mailto:rez@mail.novae.one">
 			<svg
 				xmlns="http://www.w3.org/2000/svg"

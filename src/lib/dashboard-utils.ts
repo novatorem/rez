@@ -3,9 +3,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { toastStore } from './toast-store.js';
 
 // Constants
-export const MAX_STATUS_LENGTH = 64;
+export const MAX_STATUS_LENGTH = 42;
 export const MAX_USERNAME_LENGTH = 20;
-export const USERNAME_PATTERN = /^[a-zA-Z0-9_]+$/;
+export const MAX_DISPLAY_NAME_LENGTH = 50;
+export const USERNAME_PATTERN = /^[a-zA-Z][a-zA-Z0-9._-]*$/;
 
 // Error messages
 export const ERROR_MESSAGES = {
@@ -14,8 +15,11 @@ export const ERROR_MESSAGES = {
 	STATUS_TOO_LONG: `Status must be ${MAX_STATUS_LENGTH} characters or less`,
 	USERNAME_EMPTY: 'Username cannot be empty',
 	USERNAME_TOO_LONG: `Username must be ${MAX_USERNAME_LENGTH} characters or less`,
-	USERNAME_INVALID: 'Username can only contain letters, numbers, and underscores',
+	USERNAME_INVALID:
+		'Username must start with a letter and can only contain letters, numbers, dots, dashes, and underscores',
 	USERNAME_TAKEN: 'Username is already taken',
+	DISPLAY_NAME_TOO_LONG: `Display name must be ${MAX_DISPLAY_NAME_LENGTH} characters or less`,
+	DISPLAY_NAME_EMPTY: 'Display name cannot be empty',
 	USER_NOT_FOUND: 'User not found',
 	CANNOT_FRIEND_SELF: "You can't send a friend request to yourself",
 	ALREADY_FRIENDS: 'You are already friends with this user',
@@ -74,6 +78,26 @@ export function validateUsername(username: string): string | null {
 	return null;
 }
 
+export function validateDisplayName(displayName: string): string | null {
+	if (displayName.length === 0) {
+		return ERROR_MESSAGES.DISPLAY_NAME_EMPTY;
+	}
+	if (displayName.length > MAX_DISPLAY_NAME_LENGTH) {
+		return ERROR_MESSAGES.DISPLAY_NAME_TOO_LONG;
+	}
+	return null;
+}
+
+// Display name utilities
+export function getDisplayName(displayName: string | null, username: string): string {
+	return displayName || username;
+}
+
+export function sanitizeDisplayName(displayName: string): string {
+	// Trim whitespace from display name
+	return displayName.trim();
+}
+
 // Authentication guards
 export function requireAuth(user: { id: string } | null, supabase: SupabaseClient | null): boolean {
 	if (!user) {
@@ -104,17 +128,32 @@ export async function verifyFriendshipExists(
 	friendId: string
 ): Promise<boolean> {
 	try {
+		// Check both directions of the friendship
 		const [friendship1, friendship2] = await Promise.all([
 			supabase
 				.from('friends')
 				.select('id')
 				.eq('user_id', userId)
 				.eq('friend_id', friendId)
-				.single(),
-			supabase.from('friends').select('id').eq('user_id', friendId).eq('friend_id', userId).single()
+				.maybeSingle(), // Use maybeSingle() to avoid throwing on no results
+			supabase
+				.from('friends')
+				.select('id')
+				.eq('user_id', friendId)
+				.eq('friend_id', userId)
+				.maybeSingle() // Use maybeSingle() to avoid throwing on no results
 		]);
 
-		return !!(friendship1.data || friendship2.data);
+		// Check if either query had an error or if either friendship exists
+		const hasError = friendship1.error || friendship2.error;
+		const friendshipExists = !!(friendship1.data || friendship2.data);
+
+		if (hasError) {
+			console.error('Error verifying friendship:', friendship1.error || friendship2.error);
+			return false;
+		}
+
+		return friendshipExists;
 	} catch (error) {
 		console.error('Error verifying friendship:', error);
 		return false;
@@ -133,7 +172,7 @@ export async function checkExistingFriendRequest(
 			.select('id, status')
 			.eq('requester_id', requesterId)
 			.eq('target_id', targetId)
-			.single();
+			.maybeSingle();
 
 		if (error && error.code !== 'PGRST116') {
 			throw error;
@@ -160,7 +199,7 @@ export async function checkIncomingFriendRequest(
 			.select('id, status')
 			.eq('requester_id', targetId)
 			.eq('target_id', requesterId)
-			.single();
+			.maybeSingle();
 
 		if (error && error.code !== 'PGRST116') {
 			throw error;
@@ -178,8 +217,8 @@ export async function checkIncomingFriendRequest(
 
 // Username utilities
 export function sanitizeUsername(username: string): string {
-	// Remove @ prefix if present and trim whitespace
-	return username.startsWith('@') ? username.substring(1).trim() : username.trim();
+	// Trim whitespace from username
+	return username.trim();
 }
 
 export async function findUserByUsername(

@@ -1,161 +1,226 @@
 <script lang="ts">
-	let { data } = $props();
-	let { colors } = $derived(data);
+	import { onMount } from 'svelte';
+
+	let featuresRef: HTMLElement;
+
+	onMount(() => {
+		// Add scroll animations
+		const observerOptions = {
+			threshold: 0.1,
+			rootMargin: '0px 0px -50px 0px'
+		};
+
+		const observer = new IntersectionObserver((entries) => {
+			entries.forEach((entry) => {
+				if (entry.isIntersecting) {
+					entry.target.classList.add('animate-fade-in');
+				}
+			});
+		}, observerOptions);
+
+		if (featuresRef) observer.observe(featuresRef);
+
+		return () => observer.disconnect();
+	});
 </script>
 
-<nav class="navbar bg-base-200 sticky top-0 z-50 shadow-lg">
-	<div class="navbar-start">
-		<a href="/" class="btn btn-ghost text-xl normal-case">MyApp</a>
-	</div>
-	<div class="navbar-center hidden lg:flex">
-		<ul class="menu menu-horizontal px-1">
-			<li><a>Features</a></li>
-			<li><a>About</a></li>
-		</ul>
-	</div>
-	<div class="navbar-end">
-		<a href="/dashboard" class="btn btn-primary">Get Started</a>
-	</div>
-	<div class="dropdown dropdown-end lg:hidden">
-		<label tabindex="0" class="btn btn-ghost lg:hidden">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				class="h-5 w-5"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				><path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M4 6h16M4 12h16m-7 6h7"
-				/></svg
-			>
-		</label>
-		<ul
-			tabindex="0"
-			class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
-		>
-			<li><a>Features</a></li>
-			<li><a>About</a></li>
-		</ul>
-	</div>
-</nav>
-
-<div class="hero from-primary to-secondary text-primary-content min-h-[70vh] bg-gradient-to-br">
+<!-- Hero Section -->
+<div class="hero from-primary to-secondary text-primary-content min-h-screen bg-gradient-to-br">
 	<div class="hero-overlay bg-opacity-60"></div>
 	<div class="hero-content text-center">
-		<div class="max-w-md">
-			<h1 class="mb-5 text-5xl font-bold">Welcome to MyApp</h1>
-			<p class="mb-5">
-				The revolutionary new platform that will change the way you work, collaborate, and innovate.
-				Experience seamless integration and unparalleled efficiency.
+		<div class="animate-fade-in-up max-w-md">
+			<h1 class="mb-5 text-5xl font-bold md:text-7xl">
+				<span class="gradient-text block">Rezonate</span>
+				with others
+			</h1>
+			<p class="mb-5 text-xl md:text-2xl">
+				Connect to people. Stay up to date. Always in the know.
 			</p>
-			<a href="/dashboard" class="btn btn-accent btn-lg">Get Started Today</a>
+			<div class="flex flex-col gap-4 sm:flex-row sm:justify-center">
+				<a href="/dashboard" class="btn btn-accent btn-lg animate-pulse-slow">
+					Join the Universe
+				</a>
+			</div>
 		</div>
 	</div>
+
+	<!-- Floating Elements -->
+	<div
+		class="animate-float bg-primary-content/10 absolute top-20 left-10 h-20 w-20 rounded-full"
+	></div>
+	<div
+		class="animate-float bg-primary-content/10 absolute top-40 right-20 h-16 w-16 rounded-full"
+		style="animation-delay: -2s;"
+	></div>
+	<div
+		class="animate-float bg-primary-content/10 absolute bottom-20 left-20 h-12 w-12 rounded-full"
+		style="animation-delay: -4s;"
+	></div>
+	<div
+		class="animate-float bg-primary-content/10 absolute right-10 bottom-40 h-24 w-24 rounded-full"
+		style="animation-delay: -1s;"
+	></div>
 </div>
 
-<section class="bg-base-100 px-4 py-16">
-	<div class="container mx-auto">
-		<h2 class="mb-12 text-center text-3xl font-bold">Why Choose MyApp?</h2>
-		<ul>
-			{#each colors as color (color.name)}
-				<li>{color.name}</li>
-			{/each}
-		</ul>
-		<div class="grid grid-cols-1 gap-8 md:grid-cols-3">
-			<div class="card bg-base-200 shadow-xl transition-shadow duration-300 hover:shadow-2xl">
+<!-- Features Section -->
+<section id="features" bind:this={featuresRef} class="bg-base-200 py-20">
+	<div class="container mx-auto px-4">
+		<div class="mb-12 text-center">
+			<h2 class="mb-4 text-4xl font-bold">
+				Why use <span class="gradient-text">Rez</span>?
+			</h2>
+		</div>
+
+		<div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+			<div class="card bg-base-100 feature-card shadow-xl">
 				<figure class="px-10 pt-10">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke-width="1.5"
-						stroke="currentColor"
-						class="text-primary h-16 w-16"
+					<div
+						class="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-500"
 					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
-						/>
-					</svg>
+						<svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+							></path>
+						</svg>
+					</div>
 				</figure>
 				<div class="card-body items-center text-center">
-					<h3 class="card-title">Blazing Fast</h3>
-					<p>Our platform is optimized for speed, ensuring you get things done quickly.</p>
-					<div class="card-actions">
-						<button class="btn btn-ghost btn-sm">Learn More</button>
-					</div>
+					<h3 class="card-title text-2xl">Secure & Reliable</h3>
+					<p class="text-base-content/70">Export or delete your data at any time.</p>
 				</div>
 			</div>
-			<div class="card bg-base-200 shadow-xl transition-shadow duration-300 hover:shadow-2xl">
+
+			<div class="card bg-base-100 feature-card shadow-xl">
 				<figure class="px-10 pt-10">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke-width="1.5"
-						stroke="currentColor"
-						class="text-primary h-16 w-16"
+					<div
+						class="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500"
 					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
-						/>
-					</svg>
+						<svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+							></path>
+						</svg>
+					</div>
 				</figure>
 				<div class="card-body items-center text-center">
-					<h3 class="card-title">Secure</h3>
-					<p>Your data is protected with state-of-the-art security measures.</p>
-					<div class="card-actions">
-						<button class="btn btn-ghost btn-sm">Learn More</button>
-					</div>
+					<h3 class="card-title text-2xl">Easy Insight</h3>
+					<p class="text-base-content/70">Single view dashboard for all your connections.</p>
 				</div>
 			</div>
-			<div class="card bg-base-200 shadow-xl transition-shadow duration-300 hover:shadow-2xl">
+
+			<div class="card bg-base-100 feature-card shadow-xl">
 				<figure class="px-10 pt-10">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke-width="1.5"
-						stroke="currentColor"
-						class="text-primary h-16 w-16"
+					<div
+						class="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-500"
 					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.004.827c-.29.24-.438.613-.438 1.001s.148.76.437 1.001l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.333.184-.582.496-.645.87l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.29-.24.438-.613.438-1.001s-.148-.76-.437-1.001l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.217.456c.355.133.75.072 1.076-.124.072-.044.146-.087.22-.128.332-.184.582-.496.645-.87l.213-1.28z"
-						/>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-						/>
-					</svg>
+						<svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+							></path>
+						</svg>
+					</div>
 				</figure>
 				<div class="card-body items-center text-center">
-					<h3 class="card-title">Easy Collaboration</h3>
-					<p>Work seamlessly with your team, no matter where they are.</p>
-					<div class="card-actions">
-						<button class="btn btn-ghost btn-sm">Learn More</button>
-					</div>
+					<h3 class="card-title text-2xl">User Friendly</h3>
+					<p class="text-base-content/70">Everything you need, nothing you don't.</p>
 				</div>
 			</div>
 		</div>
 	</div>
 </section>
 
-<section class="bg-neutral text-neutral-content px-4 py-16">
-	<div class="container mx-auto text-center">
-		<h2 class="mb-4 text-3xl font-bold">Ready to Elevate Your Workflow?</h2>
-		<p class="mx-auto mb-8 max-w-2xl">
-			Join thousands of satisfied users who are transforming their productivity with MyApp. Sign up
-			for a free trial today!
-		</p>
-		<button class="btn btn-accent btn-lg">Start Free Trial</button>
-	</div>
-</section>
+<style>
+	@keyframes float {
+		0%,
+		100% {
+			transform: translateY(0px);
+		}
+		50% {
+			transform: translateY(-20px);
+		}
+	}
+
+	@keyframes fadeInUp {
+		from {
+			opacity: 0;
+			transform: translateY(30px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	@keyframes pulse {
+		0%,
+		100% {
+			transform: scale(1);
+		}
+		50% {
+			transform: scale(1.05);
+		}
+	}
+
+	.animate-float {
+		animation: float 6s ease-in-out infinite;
+	}
+
+	.animate-fade-in-up {
+		animation: fadeInUp 0.8s ease-out forwards;
+	}
+
+	.animate-pulse-slow {
+		animation: pulse 3s ease-in-out infinite;
+	}
+
+	.gradient-text {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+		color: transparent;
+		display: inline-block;
+	}
+
+	.hero::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")
+			repeat;
+		animation: float 20s linear infinite;
+		pointer-events: none;
+	}
+
+	.feature-card {
+		transition: all 0.3s ease;
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	.feature-card:hover {
+		transform: translateY(-5px);
+		transition: all 0.3s ease;
+	}
+</style>
