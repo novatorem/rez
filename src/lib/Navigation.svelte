@@ -1,5 +1,6 @@
 <script>
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	export let supabase;
 
@@ -10,14 +11,14 @@
 		if (error) {
 			console.error(error);
 		} else {
-			goto('/auth');
+			goto(resolve('/auth'));
 		}
 	};
 </script>
 
 <nav class="navbar bg-base-200 sticky top-0 z-50 shadow-lg">
 	<div class="navbar-start">
-		<a href="/" class="btn btn-ghost text-xl normal-case">Home</a>
+		<a href={resolve('/')} class="btn btn-ghost text-xl normal-case">Home</a>
 	</div>
 	<div class="navbar-end">
 		<div class="dropdown dropdown-end">
@@ -39,7 +40,7 @@
 			</button>
 			<ul class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
 				<li>
-					<a href="/dashboard/settings" class="btn btn-ghost justify-start">
+					<a href={resolve('/dashboard/settings')} class="btn btn-ghost justify-start">
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
 							class="mr-2 h-5 w-5"

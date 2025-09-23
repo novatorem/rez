@@ -1,11 +1,13 @@
 <script>
+	import { resolve } from '$app/paths';
+
 	let { children } = $props();
 </script>
 
 <header>
 	<nav class="navbar bg-base-200 sticky top-0 z-50 shadow-lg">
 		<div class="navbar-start">
-			<a href="/" class="btn btn-ghost text-xl normal-case">Home</a>
+			<a href={resolve('/')} class="btn btn-ghost text-xl normal-case">Home</a>
 		</div>
 		<div class="navbar-center hidden lg:flex">
 			<ul class="menu menu-horizontal px-1">
@@ -14,7 +16,7 @@
 			</ul>
 		</div>
 		<div class="navbar-end">
-			<a href="/dashboard" class="btn btn-primary">Get Started</a>
+			<a href={resolve('/dashboard')} class="btn btn-primary">Get Started</a>
 		</div>
 		<div class="dropdown dropdown-end lg:hidden">
 			<label tabindex="0" class="btn btn-ghost lg:hidden">
