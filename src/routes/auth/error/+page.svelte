@@ -1,3 +1,7 @@
+<script>
+	import { resolve } from '$app/paths';
+</script>
+
 <div class="bg-base-200 flex min-h-screen items-center justify-center p-4">
 	<div class="card bg-base-100 w-full max-w-md shadow-xl">
 		<div class="card-body">
@@ -31,8 +35,8 @@
 			</ul>
 
 			<div class="card-actions justify-center">
-				<a href="/auth" class="btn btn-primary">Back to Login</a>
-				<a href="/" class="btn btn-ghost">Home</a>
+				<a href={resolve('/auth')} class="btn btn-primary">Back to Login</a>
+				<a href={resolve('/')} class="btn btn-ghost">Home</a>
 			</div>
 		</div>
 	</div>

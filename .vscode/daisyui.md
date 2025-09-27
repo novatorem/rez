@@ -1,3 +1,9 @@
+---
+description: daisyUI 5
+alwaysApply: true
+applyTo: '**'
+---
+
 # daisyUI 5
 
 daisyUI 5 is a CSS library for Tailwind CSS 4
@@ -2034,5 +2040,5 @@ Validator class changes the color of form elements to error or success based on 
 
 ## Notes
 
-- Get the latest version of this file at https://daisyui.com/llms.txt
 - Compatible with daisyUI 5.1
+- Get the latest version of this file at https://daisyui.com/llms.txt
