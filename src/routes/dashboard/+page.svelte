@@ -22,16 +22,14 @@
 	let friendRequests = $derived(dashboardData?.friendRequests || []);
 	let sentFriendRequests = $derived(dashboardData?.sentFriendRequests || []);
 	let friends = $derived(dashboardData?.friends || []);
+	let quickStatuses = $derived(dashboardData?.quickStatuses || []);
 
 	// Reactive state
 	let statusInputText = $state('');
 
 	// Loading states
 	let isUpdatingStatus = $state(false);
-	let isSendingFriendRequest = $state(false);
-	let processingRequests = $state(new Set<string>());
 	let deletingFriends = $state(new Set<string>());
-	let cancellingRequests = $state(new Set<string>());
 
 	// Modal state for friend deletion confirmation
 	let showDeleteModal = $state(false);
@@ -147,15 +145,15 @@
 				return;
 			}
 
-			// Delete both directions of the friendship in parallel
-			const [result1, result2] = await Promise.all([
-				supabase.from('friends').delete().eq('user_id', user.id).eq('friend_id', friendId),
-				supabase.from('friends').delete().eq('user_id', friendId).eq('friend_id', user.id)
-			]);
+			// Delete the single friendship record (works regardless of which direction it's stored)
+			const { error } = await supabase
+				.from('friends')
+				.delete()
+				.or(
+					`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`
+				);
 
-			// Check if either deletion had an error
-			if (result1.error || result2.error) {
-				const error = result1.error || result2.error;
+			if (error) {
 				handleDatabaseError(error, 'remove friend');
 				return;
 			}
@@ -212,6 +210,7 @@
 			<StatusSection
 				{currentStatus}
 				{isUpdatingStatus}
+				{quickStatuses}
 				onStatusUpdate={handleStatusUpdate}
 				bind:statusInputText
 			/>
@@ -224,12 +223,9 @@
 			<FriendRequestsSection
 				{friendRequests}
 				{sentFriendRequests}
-				{isSendingFriendRequest}
-				{processingRequests}
-				{cancellingRequests}
-				onFriendRequest={() => {}}
-				onFriendRequestAction={() => {}}
-				onCancelFriendRequest={() => {}}
+				{supabase}
+				{user}
+				onDataRefresh={refreshData}
 			/>
 		{/if}
 	</div>

@@ -38,7 +38,25 @@ const supabase: Handle = async ({ event, resolve }) => {
 				cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]
 			) => {
 				cookiesToSet.forEach(({ name, value, options }) => {
-					event.cookies.set(name, value, { ...options, path: '/' });
+					// Get the current host from the request
+					const host = event.url.hostname;
+
+					// SECURITY FIX: Set secure cookie options to prevent session sharing across devices/domains
+					// This addresses the critical vulnerability where users were sharing sessions
+					const secureOptions = {
+						...options,
+						path: '/',
+						// Note: We don't set httpOnly for auth tokens as Supabase needs client-side access
+						// Set secure flag in production (requires HTTPS)
+						secure: event.url.protocol === 'https:',
+						// Set sameSite to prevent CSRF attacks
+						sameSite: 'lax' as const,
+						// Set domain to current host to prevent cross-domain sharing
+						// This ensures sessions are isolated per domain/device
+						domain: host.startsWith('localhost') ? undefined : host
+					};
+
+					event.cookies.set(name, value, secureOptions);
 				});
 			}
 		},
@@ -48,73 +66,26 @@ const supabase: Handle = async ({ event, resolve }) => {
 	});
 
 	event.locals.safeGetSession = async () => {
-		try {
-			const {
-				data: { session },
-				error: sessionError
-			} = await event.locals.supabase.auth.getSession();
+		const {
+			data: { session },
+			error: sessionError
+		} = await event.locals.supabase.auth.getSession();
 
-			// If there's a session error, especially refresh token errors, clear and return null
-			if (sessionError) {
-				// Only log non-refresh-token errors to avoid spam in development
-				if (
-					sessionError.message &&
-					!sessionError.message.includes('refresh_token_not_found') &&
-					!sessionError.message.includes('Invalid Refresh Token')
-				) {
-					console.error('Session error:', sessionError);
-				}
-
-				// Clear invalid tokens by signing out silently
-				await event.locals.supabase.auth.signOut({ scope: 'local' });
-				return { session: null, user: null };
-			}
-
-			if (!session) {
-				return { session: null, user: null };
-			}
-
-			const {
-				data: { user },
-				error: userError
-			} = await event.locals.supabase.auth.getUser();
-
-			if (userError) {
-				// Only log non-refresh-token errors
-				if (
-					userError.message &&
-					!userError.message.includes('refresh_token_not_found') &&
-					!userError.message.includes('Invalid Refresh Token')
-				) {
-					console.error('Error getting user:', userError);
-				}
-
-				// Clear invalid tokens and return null
-				await event.locals.supabase.auth.signOut({ scope: 'local' });
-				return { session: null, user: null };
-			}
-
-			return { session, user };
-		} catch (err: unknown) {
-			// Only log unexpected errors, not auth-related ones
-			const authError = err as { __isAuthError?: boolean; code?: string; message?: string };
-			if (
-				authError.__isAuthError &&
-				(authError.code === 'refresh_token_not_found' ||
-					authError.message?.includes('Invalid Refresh Token'))
-			) {
-				// Silently handle refresh token errors - clear and return null
-				try {
-					await event.locals.supabase.auth.signOut({ scope: 'local' });
-				} catch {
-					// Ignore errors when clearing tokens
-				}
-				return { session: null, user: null };
-			}
-
-			console.error('Unexpected session error:', err);
+		if (!session || sessionError) {
 			return { session: null, user: null };
 		}
+
+		const {
+			data: { user },
+			error: userError
+		} = await event.locals.supabase.auth.getUser();
+
+		if (userError) {
+			// JWT validation has failed - following official docs pattern
+			return { session: null, user: null };
+		}
+
+		return { session, user };
 	};
 
 	return resolve(event, {

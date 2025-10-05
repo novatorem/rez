@@ -33,5 +33,5 @@
 
 	// ESLint settings
 	"eslint.validate": ["javascript", "typescript", "svelte"],
-	"cSpell.words": ["supabase"]
+	"cSpell.words": ["PGRST", "rezonate", "supabase"]
 }

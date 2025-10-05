@@ -5,6 +5,7 @@
 		ERROR_MESSAGES,
 		handleDatabaseError,
 		MAX_DISPLAY_NAME_LENGTH,
+		MAX_STATUS_LENGTH,
 		MAX_USERNAME_LENGTH,
 		sanitizeDisplayName,
 		validateDisplayName,
@@ -36,6 +37,11 @@
 	let deletePassword = $state('');
 	let isDeletingAccount = $state(false);
 
+	// Quick status management
+	let quickStatuses = $derived(dashboardData?.quickStatuses || []);
+	let quickStatusInputs = $state<string[]>([]);
+	let isUpdatingQuickStatuses = $state(false);
+
 	// Load dashboard data on mount
 	onMount(() => {
 		if (session?.user && supabase) {
@@ -51,6 +57,12 @@
 		try {
 			const dataLoader = new DashboardDataLoader(supabase, session.user.id);
 			dashboardData = await dataLoader.loadAllData();
+			// Initialize quick status inputs when data is loaded
+			quickStatusInputs = quickStatuses.map((qs) => qs.status_text);
+			// Fill empty slots up to 5
+			while (quickStatusInputs.length < 5) {
+				quickStatusInputs.push('');
+			}
 		} catch (error) {
 			handleDatabaseError(error, 'load dashboard data');
 		} finally {
@@ -152,6 +164,63 @@
 	const cancelDeleteAccount = () => {
 		showDeleteModal = false;
 		deletePassword = '';
+	};
+
+	const handleQuickStatusUpdate = async (evt: Event) => {
+		evt.preventDefault();
+		if (!session?.user || !supabase) return;
+
+		isUpdatingQuickStatuses = true;
+		try {
+			// Filter out empty inputs
+			const validStatuses = quickStatusInputs
+				.map((text, index) => ({ text: text.trim(), order: index }))
+				.filter((qs) => qs.text.length > 0);
+
+			// Validate all statuses
+			for (const qs of validStatuses) {
+				const { validateStatus } = await import('$lib/dashboard-utils');
+				const validationError = validateStatus(qs.text);
+				if (validationError) {
+					toastStore.error(`Status ${qs.order + 1}: ${validationError}`);
+					return;
+				}
+			}
+
+			// Delete all existing quick statuses
+			const { error: deleteError } = await supabase
+				.from('quick_statuses')
+				.delete()
+				.eq('user_id', session.user.id);
+
+			if (deleteError) {
+				handleDatabaseError(deleteError, 'delete quick statuses');
+				return;
+			}
+
+			// Insert new quick statuses if any
+			if (validStatuses.length > 0) {
+				const { error: insertError } = await supabase.from('quick_statuses').insert(
+					validStatuses.map((qs) => ({
+						user_id: session.user.id,
+						status_text: qs.text,
+						display_order: qs.order
+					}))
+				);
+
+				if (insertError) {
+					handleDatabaseError(insertError, 'update quick statuses');
+					return;
+				}
+			}
+
+			await loadDashboardData();
+			toastStore.success('Quick statuses updated successfully');
+		} catch (error) {
+			handleDatabaseError(error, 'update quick statuses');
+		} finally {
+			isUpdatingQuickStatuses = false;
+		}
 	};
 
 	const handleUsernameUpdate = async (evt: Event) => {
@@ -363,43 +432,7 @@
 												aria-describedby="username-help"
 											>
 												{#if isUpdatingUsername}
-													<svg
-														xmlns="http://www.w3.org/2000/svg"
-														width="24"
-														height="24"
-														viewBox="0 0 24 24"
-														><circle cx="18" cy="12" r="0" fill="currentColor"
-															><animate
-																attributeName="r"
-																begin=".67"
-																calcMode="spline"
-																dur="1.5s"
-																keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-																repeatCount="indefinite"
-																values="0;2;0;0"
-															/></circle
-														><circle cx="12" cy="12" r="0" fill="currentColor"
-															><animate
-																attributeName="r"
-																begin=".33"
-																calcMode="spline"
-																dur="1.5s"
-																keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-																repeatCount="indefinite"
-																values="0;2;0;0"
-															/></circle
-														><circle cx="6" cy="12" r="0" fill="currentColor"
-															><animate
-																attributeName="r"
-																begin="0"
-																calcMode="spline"
-																dur="1.5s"
-																keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-																repeatCount="indefinite"
-																values="0;2;0;0"
-															/></circle
-														></svg
-													>
+													<span class="loading loading-spinner loading-xs"></span>
 												{:else}
 													<svg
 														xmlns="http://www.w3.org/2000/svg"
@@ -531,43 +564,7 @@
 												aria-describedby="display-name-help"
 											>
 												{#if isUpdatingDisplayName}
-													<svg
-														xmlns="http://www.w3.org/2000/svg"
-														width="24"
-														height="24"
-														viewBox="0 0 24 24"
-														><circle cx="18" cy="12" r="0" fill="currentColor"
-															><animate
-																attributeName="r"
-																begin=".67"
-																calcMode="spline"
-																dur="1.5s"
-																keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-																repeatCount="indefinite"
-																values="0;2;0;0"
-															/></circle
-														><circle cx="12" cy="12" r="0" fill="currentColor"
-															><animate
-																attributeName="r"
-																begin=".33"
-																calcMode="spline"
-																dur="1.5s"
-																keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-																repeatCount="indefinite"
-																values="0;2;0;0"
-															/></circle
-														><circle cx="6" cy="12" r="0" fill="currentColor"
-															><animate
-																attributeName="r"
-																begin="0"
-																calcMode="spline"
-																dur="1.5s"
-																keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-																repeatCount="indefinite"
-																values="0;2;0;0"
-															/></circle
-														></svg
-													>
+													<span class="loading loading-spinner loading-xs"></span>
 												{:else}
 													<svg
 														xmlns="http://www.w3.org/2000/svg"
@@ -626,6 +623,136 @@
 							</div>
 						{/if}
 					</div>
+				</div>
+			</div>
+		</section>
+
+		<!-- Quick Status Section -->
+		<section class="card bg-base-100 shadow-xl" aria-labelledby="quick-status-heading">
+			<div class="card-body p-6 sm:p-8">
+				<h2 id="quick-status-heading" class="card-title mb-6 flex items-center gap-3 text-2xl">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+						><g
+							fill="none"
+							stroke="currentColor"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							><path
+								d="M15 3.512a9.03 9.03 0 0 1 5.5 5.523M11 3.055a9 9 0 0 0-6.605 13.76L3 21l4.185-1.395A9 9 0 0 0 20.945 13"
+							/><path d="M12 17a5 5 0 0 1-5-5m2-4a5 5 0 0 1 7 7" /><circle
+								cx="12"
+								cy="12"
+								r="1"
+							/></g
+						></svg
+					>
+					Quick Statuses
+				</h2>
+				<div class="space-y-4">
+					<p class="text-base-content/70 text-sm">
+						Set up to 5 pre-defined statuses for quick selection from the dashboard.
+					</p>
+
+					{#if isLoadingData}
+						<div class="space-y-3">
+							{#each Array.from({ length: 5 }, (_, i) => i) as i (i)}
+								<div class="skeleton h-12 w-full"></div>
+							{/each}
+						</div>
+					{:else}
+						<form onsubmit={handleQuickStatusUpdate} class="space-y-4">
+							{#each Array.from({ length: 5 }, (_, i) => i) as index (index)}
+								<div class="form-control min-w-0">
+									<label class="label" for="quick-status-{index}">
+										<span class="label-text font-medium">Quick Status {index + 1}</span>
+										<span
+											class="font-mono text-sm {(quickStatusInputs[index]?.length || 0) >
+											MAX_STATUS_LENGTH
+												? 'text-error'
+												: 'text-base-content/60'}"
+										>
+											{quickStatusInputs[index]?.length || 0}/{MAX_STATUS_LENGTH}
+										</span>
+									</label>
+									<input
+										id="quick-status-{index}"
+										type="text"
+										bind:value={quickStatusInputs[index]}
+										class="input input-bordered w-full"
+										placeholder="Enter a quick status (optional)"
+										maxlength={MAX_STATUS_LENGTH}
+									/>
+								</div>
+							{/each}
+
+							<div class="form-control mt-6">
+								<button
+									class="btn btn-primary"
+									disabled={isUpdatingQuickStatuses}
+									type="submit"
+									aria-describedby="quick-status-help"
+								>
+									{#if isUpdatingQuickStatuses}
+										<span class="loading loading-spinner loading-sm"></span>
+										Updating...
+									{:else}
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="24"
+											height="24"
+											viewBox="0 0 24 24"
+											class="mr-2"
+											><g
+												fill="none"
+												stroke="currentColor"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												><path
+													fill="currentColor"
+													fill-opacity="0"
+													stroke-dasharray="20"
+													stroke-dashoffset="20"
+													d="M12 15h2v-6h2.5l-4.5 -4.5M12 15h-2v-6h-2.5l4.5 -4.5"
+													><animate
+														fill="freeze"
+														attributeName="fill-opacity"
+														begin="0.7s"
+														dur="0.5s"
+														values="0;1"
+													/><animate
+														fill="freeze"
+														attributeName="stroke-dashoffset"
+														dur="0.4s"
+														values="20;0"
+													/></path
+												><path stroke-dasharray="14" stroke-dashoffset="14" d="M6 19h12"
+													><animate
+														fill="freeze"
+														attributeName="stroke-dashoffset"
+														begin="0.5s"
+														dur="0.2s"
+														values="14;0"
+													/></path
+												></g
+											></svg
+										>
+										Save Quick Statuses
+									{/if}
+								</button>
+								<div class="label w-full max-w-full">
+									<span
+										id="quick-status-help"
+										class="label-text-alt text-base-content/60 break-anywhere block w-full max-w-full text-sm leading-relaxed break-words hyphens-auto whitespace-normal sm:text-base"
+									>
+										These statuses will appear as quick options on your dashboard. Leave blank to
+										remove.
+									</span>
+								</div>
+							</div>
+						</form>
+					{/if}
 				</div>
 			</div>
 		</section>

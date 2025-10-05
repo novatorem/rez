@@ -26,19 +26,7 @@ interface SentFriendRequestWithUser {
 		username: string;
 		display_name: string | null;
 	};
-	status: string;
 	created_at: string;
-}
-
-interface FriendWithUser {
-	id: string;
-	user_id: string;
-	friend_id: string;
-	users: {
-		id: string;
-		username: string;
-		display_name: string | null;
-	};
 }
 
 export interface SentFriendRequest {
@@ -46,7 +34,6 @@ export interface SentFriendRequest {
 	target_id: string;
 	target_username: string;
 	target_display_name: string | null;
-	status: string;
 	created_at: string;
 }
 
@@ -58,6 +45,12 @@ export interface Friend {
 	status_updated_at: string | null;
 }
 
+export interface QuickStatus {
+	id: string;
+	status_text: string;
+	display_order: number;
+}
+
 export interface DashboardData {
 	currentUsername: string;
 	currentDisplayName: string | null;
@@ -65,6 +58,7 @@ export interface DashboardData {
 	friendRequests: FriendRequest[];
 	sentFriendRequests: SentFriendRequest[];
 	friends: Friend[];
+	quickStatuses: QuickStatus[];
 }
 
 export interface UserExportData {
@@ -84,6 +78,7 @@ export interface UserExportData {
 	friends: Friend[];
 	friendRequests: FriendRequest[];
 	sentFriendRequests: SentFriendRequest[];
+	quickStatuses: QuickStatus[];
 	exportMetadata: {
 		exportedAt: string;
 		version: string;
@@ -124,8 +119,7 @@ export class DashboardDataLoader {
 		const { data } = await this.supabase
 			.from('friend_requests')
 			.select('id, requester_id, users!requester_id(username, display_name)')
-			.eq('target_id', this.userId)
-			.eq('status', 'pending');
+			.eq('target_id', this.userId);
 
 		const formattedRequests =
 			data?.map((request) => {
@@ -144,9 +138,8 @@ export class DashboardDataLoader {
 	async loadSentFriendRequests(): Promise<SentFriendRequest[]> {
 		const { data } = await this.supabase
 			.from('friend_requests')
-			.select('id, target_id, users!target_id(username, display_name), status, created_at')
-			.eq('requester_id', this.userId)
-			.eq('status', 'pending');
+			.select('id, target_id, users!target_id(username, display_name), created_at')
+			.eq('requester_id', this.userId);
 
 		const formattedSentRequests =
 			data?.map((request) => {
@@ -156,7 +149,6 @@ export class DashboardDataLoader {
 					target_id: requestWithUser.target_id,
 					target_username: requestWithUser.users?.username || 'Unknown user',
 					target_display_name: requestWithUser.users?.display_name || null,
-					status: requestWithUser.status,
 					created_at: requestWithUser.created_at
 				};
 			}) || [];
@@ -165,26 +157,27 @@ export class DashboardDataLoader {
 	}
 
 	async loadFriends(): Promise<Friend[]> {
-		// Get friends where current user is the user_id and where current user is the friend_id
-		const [friendsAsUser, friendsAsFriend] = await Promise.all([
-			this.supabase
-				.from('friends')
-				.select('id, user_id, friend_id, users!friend_id(id, username, display_name)')
-				.eq('user_id', this.userId),
-			this.supabase
-				.from('friends')
-				.select('id, user_id, friend_id, users!user_id(id, username, display_name)')
-				.eq('friend_id', this.userId)
-		]);
+		// Get all friendships where current user is either user_id or friend_id
+		// Since we now store only one record per friendship, we need to check both columns
+		const { data: friendships } = await this.supabase
+			.from('friends')
+			.select('id, user_id, friend_id')
+			.or(`user_id.eq.${this.userId},friend_id.eq.${this.userId}`);
 
-		// Combine both directions of friendships
-		const friends = [...(friendsAsUser.data || []), ...(friendsAsFriend.data || [])];
+		if (!friendships || friendships.length === 0) {
+			return [];
+		}
 
-		// Get friend IDs to fetch their statuses
-		const friendIds = friends.map((friend) => {
-			const friendWithUser = friend as FriendWithUser;
-			return friendWithUser.users.id;
+		// Get friend IDs (the other person in each friendship)
+		const friendIds = friendships.map((friendship) => {
+			return friendship.user_id === this.userId ? friendship.friend_id : friendship.user_id;
 		});
+
+		// Fetch user details for all friends
+		const { data: friendUsers } = await this.supabase
+			.from('users')
+			.select('id, username, display_name')
+			.in('id', friendIds);
 
 		// Get statuses for all friends in parallel
 		const { data: friendStatuses } =
@@ -192,35 +185,54 @@ export class DashboardDataLoader {
 				? await this.supabase.from('profiles').select('id, status, updated_at').in('id', friendIds)
 				: { data: [] };
 
-		// Create maps for friend statuses and status updated times for easy lookup
+		// Create maps for friend data
+		const userMap = new Map(friendUsers?.map((user) => [user.id, user]) || []);
 		const statusMap = new Map(friendStatuses?.map((profile) => [profile.id, profile.status]) || []);
 		const statusUpdatedAtMap = new Map(
 			friendStatuses?.map((profile) => [profile.id, profile.updated_at]) || []
 		);
 
 		// Process and format friends
-		const formattedFriends = friends.map((friend) => {
-			const friendWithUser = friend as FriendWithUser;
+		const formattedFriends = friendIds.map((friendId) => {
+			const user = userMap.get(friendId);
 			return {
-				id: friendWithUser.users.id,
-				username: friendWithUser.users.username,
-				display_name: friendWithUser.users.display_name,
-				status: statusMap.get(friendWithUser.users.id) || null,
-				status_updated_at: statusUpdatedAtMap.get(friendWithUser.users.id) || null
+				id: friendId,
+				username: user?.username || 'Unknown',
+				display_name: user?.display_name || null,
+				status: statusMap.get(friendId) || null,
+				status_updated_at: statusUpdatedAtMap.get(friendId) || null
 			};
 		});
 
 		return deduplicateById(formattedFriends);
 	}
 
+	async loadQuickStatuses(): Promise<QuickStatus[]> {
+		const { data } = await this.supabase
+			.from('quick_statuses')
+			.select('id, status_text, display_order')
+			.eq('user_id', this.userId)
+			.order('display_order', { ascending: true });
+
+		return (
+			data?.map((qs) => ({
+				id: qs.id,
+				status_text: qs.status_text,
+				display_order: qs.display_order
+			})) || []
+		);
+	}
+
 	async loadAllData(): Promise<DashboardData> {
 		// Load all data in parallel for better performance
-		const [userProfile, friendRequests, sentFriendRequests, friends] = await Promise.all([
-			this.loadUserProfile(),
-			this.loadFriendRequests(),
-			this.loadSentFriendRequests(),
-			this.loadFriends()
-		]);
+		const [userProfile, friendRequests, sentFriendRequests, friends, quickStatuses] =
+			await Promise.all([
+				this.loadUserProfile(),
+				this.loadFriendRequests(),
+				this.loadSentFriendRequests(),
+				this.loadFriends(),
+				this.loadQuickStatuses()
+			]);
 
 		return {
 			currentUsername: userProfile.username,
@@ -228,27 +240,30 @@ export class DashboardDataLoader {
 			currentStatus: userProfile.status,
 			friendRequests,
 			sentFriendRequests,
-			friends
+			friends,
+			quickStatuses
 		};
 	}
 
 	async exportUserData(): Promise<UserExportData> {
 		// Load all user data including detailed user and profile information
-		const [userData, profileData, friendRequests, sentFriendRequests, friends] = await Promise.all([
-			this.supabase
-				.from('users')
-				.select('id, email, username, display_name, created_at, updated_at')
-				.eq('id', this.userId)
-				.single(),
-			this.supabase
-				.from('profiles')
-				.select('status, created_at, updated_at')
-				.eq('id', this.userId)
-				.single(),
-			this.loadFriendRequests(),
-			this.loadSentFriendRequests(),
-			this.loadFriends()
-		]);
+		const [userData, profileData, friendRequests, sentFriendRequests, friends, quickStatuses] =
+			await Promise.all([
+				this.supabase
+					.from('users')
+					.select('id, email, username, display_name, created_at, updated_at')
+					.eq('id', this.userId)
+					.single(),
+				this.supabase
+					.from('profiles')
+					.select('status, created_at, updated_at')
+					.eq('id', this.userId)
+					.single(),
+				this.loadFriendRequests(),
+				this.loadSentFriendRequests(),
+				this.loadFriends(),
+				this.loadQuickStatuses()
+			]);
 
 		if (!userData.data) {
 			throw new Error('User data not found');
@@ -271,6 +286,7 @@ export class DashboardDataLoader {
 			friends,
 			friendRequests,
 			sentFriendRequests,
+			quickStatuses,
 			exportMetadata: {
 				exportedAt: new Date().toISOString(),
 				version: '1.0'

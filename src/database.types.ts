@@ -91,40 +91,74 @@ export interface Database {
 					}
 				];
 			};
-			friends: {
-				Row: {
-					id: string;
-					user_id: string;
-					friend_id: string;
-					created_at: string;
-				};
-				Insert: {
-					id?: string;
-					user_id: string;
-					friend_id: string;
-					created_at?: string;
-				};
-				Update: {
-					id?: string;
-					user_id?: string;
-					friend_id?: string;
-					created_at?: string;
-				};
-				Relationships: [
-					{
-						foreignKeyName: 'friends_user_id_fkey';
-						columns: ['user_id'];
-						referencedRelation: 'users';
-						referencedColumns: ['id'];
-					},
-					{
-						foreignKeyName: 'friends_friend_id_fkey';
-						columns: ['friend_id'];
-						referencedRelation: 'users';
-						referencedColumns: ['id'];
-					}
-				];
+		friends: {
+			Row: {
+				id: string;
+				user_id: string;
+				friend_id: string;
+				created_at: string;
 			};
+			Insert: {
+				id?: string;
+				user_id: string;
+				friend_id: string;
+				created_at?: string;
+			};
+			Update: {
+				id?: string;
+				user_id?: string;
+				friend_id?: string;
+				created_at?: string;
+			};
+			Relationships: [
+				{
+					foreignKeyName: 'friends_user_id_fkey';
+					columns: ['user_id'];
+					referencedRelation: 'users';
+					referencedColumns: ['id'];
+				},
+				{
+					foreignKeyName: 'friends_friend_id_fkey';
+					columns: ['friend_id'];
+					referencedRelation: 'users';
+					referencedColumns: ['id'];
+				}
+			];
+		};
+		quick_statuses: {
+			Row: {
+				id: string;
+				user_id: string;
+				status_text: string;
+				display_order: number;
+				created_at: string;
+				updated_at: string;
+			};
+			Insert: {
+				id?: string;
+				user_id: string;
+				status_text: string;
+				display_order: number;
+				created_at?: string;
+				updated_at?: string;
+			};
+			Update: {
+				id?: string;
+				user_id?: string;
+				status_text?: string;
+				display_order?: number;
+				created_at?: string;
+				updated_at?: string;
+			};
+			Relationships: [
+				{
+					foreignKeyName: 'fk_quick_status_user';
+					columns: ['user_id'];
+					referencedRelation: 'users';
+					referencedColumns: ['id'];
+				}
+			];
+		};
 		};
 		Views: {
 			[_ in never]: never;
