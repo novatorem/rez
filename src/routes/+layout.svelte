@@ -37,21 +37,19 @@
 
 		const { data: authListener } = supabase.auth.onAuthStateChange(
 			(event: AuthChangeEvent, newSession: Session | null) => {
-				// Only invalidate if there's a meaningful change
-				if (
-					event === 'SIGNED_OUT' ||
-					event === 'SIGNED_IN' ||
-					(event === 'TOKEN_REFRESHED' && newSession?.expires_at !== session?.expires_at)
-				) {
+				// Following official docs pattern with our security enhancements
+				if (newSession?.expires_at !== session?.expires_at) {
 					invalidate('supabase:auth');
 				}
 
-				// Handle token refresh errors by signing out silently
-				if (event === 'TOKEN_REFRESHED' && !newSession) {
-					// Token refresh failed, clear any remaining state
-					supabase.auth.signOut({ scope: 'local' }).catch(() => {
-						// Ignore errors when clearing tokens
-					});
+				// Handle sign out - ensure complete cleanup
+				if (event === 'SIGNED_OUT') {
+					// Clear any remaining client-side auth state
+					invalidate('supabase:auth');
+					// If we're not already on the auth page, redirect
+					if (!window.location.pathname.startsWith('/auth')) {
+						window.location.href = '/auth';
+					}
 				}
 			}
 		);

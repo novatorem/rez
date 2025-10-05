@@ -128,32 +128,21 @@ export async function verifyFriendshipExists(
 	friendId: string
 ): Promise<boolean> {
 	try {
-		// Check both directions of the friendship
-		const [friendship1, friendship2] = await Promise.all([
-			supabase
-				.from('friends')
-				.select('id')
-				.eq('user_id', userId)
-				.eq('friend_id', friendId)
-				.maybeSingle(), // Use maybeSingle() to avoid throwing on no results
-			supabase
-				.from('friends')
-				.select('id')
-				.eq('user_id', friendId)
-				.eq('friend_id', userId)
-				.maybeSingle() // Use maybeSingle() to avoid throwing on no results
-		]);
+		// Check for the single friendship record (could be in either direction)
+		const { data: friendship, error } = await supabase
+			.from('friends')
+			.select('id')
+			.or(
+				`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`
+			)
+			.maybeSingle();
 
-		// Check if either query had an error or if either friendship exists
-		const hasError = friendship1.error || friendship2.error;
-		const friendshipExists = !!(friendship1.data || friendship2.data);
-
-		if (hasError) {
-			console.error('Error verifying friendship:', friendship1.error || friendship2.error);
+		if (error && error.code !== 'PGRST116') {
+			console.error('Error verifying friendship:', error);
 			return false;
 		}
 
-		return friendshipExists;
+		return !!friendship;
 	} catch (error) {
 		console.error('Error verifying friendship:', error);
 		return false;

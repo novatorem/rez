@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { QuickStatus } from '$lib/dashboard-data-loader';
 	import { MAX_STATUS_LENGTH } from '$lib/dashboard-utils';
 	import type { EventHandler } from 'svelte/elements';
 
@@ -7,16 +8,28 @@
 		isUpdatingStatus: boolean;
 		onStatusUpdate: EventHandler<SubmitEvent, HTMLFormElement>;
 		statusInputText: string;
+		quickStatuses: QuickStatus[];
 	}
 
 	let {
 		currentStatus,
 		isUpdatingStatus,
 		onStatusUpdate,
-		statusInputText = $bindable()
+		statusInputText = $bindable(),
+		quickStatuses
 	}: Props = $props();
 
 	let statusCharacterCount = $derived(statusInputText.length);
+	let selectedQuickStatusId = $state<string>('');
+
+	const handleQuickStatusChange = (statusText: string, statusId: string) => {
+		statusInputText = statusText;
+		selectedQuickStatusId = statusId;
+	};
+
+	const resetQuickStatus = () => {
+		selectedQuickStatusId = '';
+	};
 </script>
 
 <div class="card bg-base-200">
@@ -45,31 +58,6 @@
 				<button class="btn btn-neutral join-item" disabled={isUpdatingStatus}>
 					{#if isUpdatingStatus}
 						<span class="loading loading-spinner loading-sm"></span>
-						<span class="loading loading-spinner loading-sm"></span>
-						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-							><path
-								fill="none"
-								stroke="currentColor"
-								stroke-dasharray="16"
-								stroke-dashoffset="16"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M12 3c4.97 0 9 4.03 9 9"
-								><animate
-									fill="freeze"
-									attributeName="stroke-dashoffset"
-									dur="0.2s"
-									values="16;0"
-								/><animateTransform
-									attributeName="transform"
-									dur="1.5s"
-									repeatCount="indefinite"
-									type="rotate"
-									values="0 12 12;360 12 12"
-								/></path
-							></svg
-						>
 					{:else}
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
 							><g
@@ -92,8 +80,39 @@
 			</div>
 		</form>
 
+		{#if quickStatuses.length > 0}
+			<div class="mb-4">
+				<div class="label">
+					<span class="label-text text-sm font-medium">Quick Status</span>
+				</div>
+				<form class="filter">
+					<input
+						class="btn btn-square btn-sm"
+						type="reset"
+						value="×"
+						onclick={resetQuickStatus}
+						title="Clear selection"
+					/>
+					{#each quickStatuses as quickStatus (quickStatus.id)}
+						<input
+							class="btn btn-sm"
+							type="radio"
+							name="quick-status"
+							aria-label={quickStatus.status_text}
+							checked={selectedQuickStatusId === quickStatus.id}
+							onchange={() => handleQuickStatusChange(quickStatus.status_text, quickStatus.id)}
+						/>
+					{/each}
+				</form>
+			</div>
+		{/if}
+
 		{#if currentStatus}
-			<div class="bg-base-300 mt-4 rounded-lg p-3">
+
+		<div class="label">
+			<span class="label-text text-sm font-medium">Current Status</span>
+		</div>
+			<div class="bg-base-300 rounded-lg p-3">
 				<p class="overflow-wrap-anywhere text-lg break-words">{currentStatus}</p>
 			</div>
 		{/if}

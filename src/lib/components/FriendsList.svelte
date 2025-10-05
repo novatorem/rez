@@ -100,7 +100,7 @@
 								<div
 									class="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"
 								>
-									<div class="min-w-0">
+									<div class="flex min-w-0 items-center gap-2">
 										<h3 class="truncate text-base font-semibold">
 											{getDisplayName(friend.display_name, friend.username)}
 										</h3>

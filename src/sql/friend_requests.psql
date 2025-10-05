@@ -11,7 +11,6 @@ CREATE TABLE IF NOT EXISTS "friend_requests" (
   "id" UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4 (),
   "requester_id" UUID NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
   "target_id" UUID NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
-  "status" TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'accepted', 'rejected'
   "created_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   -- Ensure a user can't send multiple requests to the same person
@@ -20,7 +19,8 @@ CREATE TABLE IF NOT EXISTS "friend_requests" (
   CONSTRAINT check_not_self_request CHECK (requester_id != target_id)
 );
 
--- Create friendship connections table (bidirectional relationships)
+-- Create friendship connections table (single record per friendship)
+-- Using normalized order: user_id is always the smaller UUID
 CREATE TABLE IF NOT EXISTS "friends" (
   "id" UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4 (),
   "user_id" UUID NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS "friends" (
   "created_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   -- Ensure a user can't be friends with themselves
   CONSTRAINT check_not_self_friend CHECK (user_id != friend_id),
+  -- Ensure canonical order: user_id < friend_id
+  CONSTRAINT check_canonical_order CHECK (user_id < friend_id),
   -- Ensure uniqueness of friendships
   UNIQUE ("user_id", "friend_id")
 );
@@ -40,10 +42,34 @@ RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
+-- Create function to normalize friendship order before insert/update
+-- This ensures user_id is always the smaller UUID
+CREATE OR REPLACE FUNCTION normalize_friendship_order() RETURNS TRIGGER AS $$
+BEGIN
+  -- Swap if user_id is greater than friend_id
+  IF NEW.user_id > NEW.friend_id THEN
+    DECLARE
+      temp UUID;
+    BEGIN
+      temp := NEW.user_id;
+      NEW.user_id := NEW.friend_id;
+      NEW.friend_id := temp;
+    END;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Create trigger for friend_requests updated_at
 CREATE TRIGGER set_timestamp BEFORE
 UPDATE ON friend_requests FOR EACH ROW
 EXECUTE PROCEDURE update_timestamp ();
+
+-- Create trigger to normalize friendship order before insert
+DROP TRIGGER IF EXISTS normalize_friendship_trigger ON friends;
+CREATE TRIGGER normalize_friendship_trigger BEFORE INSERT OR UPDATE
+ON friends FOR EACH ROW
+EXECUTE PROCEDURE normalize_friendship_order();
 
 -- Create Row Level Security (RLS) policies
 ALTER TABLE "friend_requests" ENABLE ROW LEVEL SECURITY;
@@ -97,7 +123,7 @@ CREATE INDEX IF NOT EXISTS idx_friend_requests_requester ON friend_requests (req
 
 CREATE INDEX IF NOT EXISTS idx_friend_requests_target ON friend_requests (target_id);
 
-CREATE INDEX IF NOT EXISTS idx_friend_requests_status ON friend_requests (status);
+-- Removed status index since status column no longer exists
 
 CREATE INDEX IF NOT EXISTS idx_friends_user ON friends (user_id);
 
