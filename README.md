@@ -42,4 +42,4 @@ https://icon-sets.iconify.design/
 # TODO
 
 - Emoji avatar
-- Quick Status
+- Re-arrange / favorite system

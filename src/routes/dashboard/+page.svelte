@@ -8,6 +8,7 @@
 	import StatusSectionSkeleton from '$lib/components/StatusSectionSkeleton.svelte';
 	import type { DashboardData } from '$lib/dashboard-data-loader';
 	import { getDisplayName } from '$lib/dashboard-utils';
+	import { friendOrderStore } from '$lib/friend-order-store';
 
 	let { data } = $props();
 	let { supabase, user } = $derived(data);
@@ -21,7 +22,8 @@
 	let currentStatus = $derived(dashboardData?.currentStatus || '');
 	let friendRequests = $derived(dashboardData?.friendRequests || []);
 	let sentFriendRequests = $derived(dashboardData?.sentFriendRequests || []);
-	let friends = $derived(dashboardData?.friends || []);
+	let rawFriends = $derived(dashboardData?.friends || []);
+	let friends = $derived(friendOrderStore.getOrderedFriends(rawFriends));
 	let quickStatuses = $derived(dashboardData?.quickStatuses || []);
 
 	// Reactive state
@@ -123,6 +125,11 @@
 		showDeleteModal = true;
 	};
 
+	const handleReorderFriends = (reorderedFriends: typeof friends) => {
+		// Update the friend order in the store
+		friendOrderStore.updateOrder(reorderedFriends);
+	};
+
 	const confirmDeleteFriend = async () => {
 		if (!friendToDelete || !user || !supabase) return;
 
@@ -157,6 +164,9 @@
 				handleDatabaseError(error, 'remove friend');
 				return;
 			}
+
+			// Remove friend from order store
+			friendOrderStore.removeFriend(friendId);
 
 			await refreshData();
 			NotificationManager.showSuccess('Friend removed successfully');
@@ -198,7 +208,12 @@
 		<LoadingSkeletons />
 	{:else}
 		<div class="mb-4">
-			<FriendsList {friends} {deletingFriends} onDeleteFriend={handleDeleteFriend} />
+			<FriendsList
+				{friends}
+				{deletingFriends}
+				onDeleteFriend={handleDeleteFriend}
+				onReorderFriends={handleReorderFriends}
+			/>
 		</div>
 	{/if}
 

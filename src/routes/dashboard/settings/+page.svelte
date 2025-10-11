@@ -11,6 +11,7 @@
 		validateDisplayName,
 		validateUsername
 	} from '$lib/dashboard-utils';
+	import { getQuickStatuses, saveQuickStatuses } from '$lib/quick-status-store';
 	import ThemeSelect from '$lib/theme-select.svelte';
 	import { toastStore } from '$lib/toast-store';
 	import { onMount } from 'svelte';
@@ -38,7 +39,6 @@
 	let isDeletingAccount = $state(false);
 
 	// Quick status management
-	let quickStatuses = $derived(dashboardData?.quickStatuses || []);
 	let quickStatusInputs = $state<string[]>([]);
 	let isUpdatingQuickStatuses = $state(false);
 
@@ -57,8 +57,9 @@
 		try {
 			const dataLoader = new DashboardDataLoader(supabase, session.user.id);
 			dashboardData = await dataLoader.loadAllData();
-			// Initialize quick status inputs when data is loaded
-			quickStatusInputs = quickStatuses.map((qs) => qs.status_text);
+			// Initialize quick status inputs from localStorage
+			const localQuickStatuses = getQuickStatuses();
+			quickStatusInputs = localQuickStatuses.map((qs) => qs.status_text);
 			// Fill empty slots up to 5
 			while (quickStatusInputs.length < 5) {
 				quickStatusInputs.push('');
@@ -187,32 +188,8 @@
 				}
 			}
 
-			// Delete all existing quick statuses
-			const { error: deleteError } = await supabase
-				.from('quick_statuses')
-				.delete()
-				.eq('user_id', session.user.id);
-
-			if (deleteError) {
-				handleDatabaseError(deleteError, 'delete quick statuses');
-				return;
-			}
-
-			// Insert new quick statuses if any
-			if (validStatuses.length > 0) {
-				const { error: insertError } = await supabase.from('quick_statuses').insert(
-					validStatuses.map((qs) => ({
-						user_id: session.user.id,
-						status_text: qs.text,
-						display_order: qs.order
-					}))
-				);
-
-				if (insertError) {
-					handleDatabaseError(insertError, 'update quick statuses');
-					return;
-				}
-			}
+			// Save to localStorage instead of database
+			saveQuickStatuses(quickStatusInputs);
 
 			await loadDashboardData();
 			toastStore.success('Quick statuses updated successfully');

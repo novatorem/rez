@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '../app.d.ts';
+import type { Database } from '../database.types';
+import { getQuickStatuses, type QuickStatus } from './quick-status-store';
 
 // Types for the dashboard data
 export interface FriendRequest {
@@ -43,12 +44,6 @@ export interface Friend {
 	display_name: string | null;
 	status: string | null;
 	status_updated_at: string | null;
-}
-
-export interface QuickStatus {
-	id: string;
-	status_text: string;
-	display_order: number;
 }
 
 export interface DashboardData {
@@ -208,19 +203,8 @@ export class DashboardDataLoader {
 	}
 
 	async loadQuickStatuses(): Promise<QuickStatus[]> {
-		const { data } = await this.supabase
-			.from('quick_statuses')
-			.select('id, status_text, display_order')
-			.eq('user_id', this.userId)
-			.order('display_order', { ascending: true });
-
-		return (
-			data?.map((qs) => ({
-				id: qs.id,
-				status_text: qs.status_text,
-				display_order: qs.display_order
-			})) || []
-		);
+		// Load quick statuses from localStorage instead of database
+		return getQuickStatuses();
 	}
 
 	async loadAllData(): Promise<DashboardData> {
