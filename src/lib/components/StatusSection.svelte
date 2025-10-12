@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { QuickStatus } from '$lib/dashboard-data-loader';
 	import { MAX_STATUS_LENGTH } from '$lib/dashboard-utils';
+	import type { QuickStatus } from '$lib/quick-status-store';
 	import type { EventHandler } from 'svelte/elements';
 
 	interface Props {
@@ -108,10 +108,9 @@
 		{/if}
 
 		{#if currentStatus}
-
-		<div class="label">
-			<span class="label-text text-sm font-medium">Current Status</span>
-		</div>
+			<div class="label">
+				<span class="label-text text-sm font-medium">Current Status</span>
+			</div>
 			<div class="bg-base-300 rounded-lg p-3">
 				<p class="overflow-wrap-anywhere text-lg break-words">{currentStatus}</p>
 			</div>

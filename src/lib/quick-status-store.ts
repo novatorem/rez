@@ -1,0 +1,110 @@
+/**
+ * Quick Status localStorage management
+ * Handles storing and retrieving quick statuses from the browser's localStorage
+ */
+
+export interface QuickStatus {
+	id: string;
+	status_text: string;
+	display_order: number;
+}
+
+const QUICK_STATUS_STORAGE_KEY = 'rez_quick_statuses';
+
+/**
+ * Get quick statuses from localStorage
+ * Returns an empty array if none exist or if localStorage is not available
+ */
+export function getQuickStatuses(): QuickStatus[] {
+	if (typeof window === 'undefined' || !window.localStorage) {
+		return [];
+	}
+
+	try {
+		const stored = localStorage.getItem(QUICK_STATUS_STORAGE_KEY);
+		if (!stored) {
+			return getDefaultQuickStatuses();
+		}
+
+		const parsed = JSON.parse(stored);
+		// Validate the structure
+		if (Array.isArray(parsed)) {
+			return parsed.filter(
+				(item) =>
+					item &&
+					typeof item.id === 'string' &&
+					typeof item.status_text === 'string' &&
+					typeof item.display_order === 'number'
+			);
+		}
+		return getDefaultQuickStatuses();
+	} catch (error) {
+		console.warn('Failed to parse quick statuses from localStorage:', error);
+		return getDefaultQuickStatuses();
+	}
+}
+
+/**
+ * Save quick statuses to localStorage
+ * Filters out empty statuses and validates the data
+ */
+export function saveQuickStatuses(statuses: string[]): void {
+	if (typeof window === 'undefined' || !window.localStorage) {
+		console.warn('localStorage not available');
+		return;
+	}
+
+	try {
+		// Filter out empty statuses and create QuickStatus objects
+		const validStatuses: QuickStatus[] = statuses
+			.map((text, index) => ({ text: text.trim(), order: index }))
+			.filter((qs) => qs.text.length > 0)
+			.map((qs) => ({
+				id: `local_${qs.order}_${Date.now()}`, // Generate unique ID
+				status_text: qs.text,
+				display_order: qs.order
+			}));
+
+		localStorage.setItem(QUICK_STATUS_STORAGE_KEY, JSON.stringify(validStatuses));
+	} catch (error) {
+		console.error('Failed to save quick statuses to localStorage:', error);
+	}
+}
+
+/**
+ * Get default quick statuses for new users
+ */
+function getDefaultQuickStatuses(): QuickStatus[] {
+	return [
+		{ id: 'default_0', status_text: 'Travelling', display_order: 0 },
+		{ id: 'default_1', status_text: 'Sleeping', display_order: 1 },
+		{ id: 'default_2', status_text: 'Working', display_order: 2 },
+		{ id: 'default_3', status_text: 'Lounging', display_order: 3 }
+	];
+}
+
+/**
+ * Clear all quick statuses from localStorage
+ */
+export function clearQuickStatuses(): void {
+	if (typeof window === 'undefined' || !window.localStorage) {
+		return;
+	}
+
+	try {
+		localStorage.removeItem(QUICK_STATUS_STORAGE_KEY);
+	} catch (error) {
+		console.error('Failed to clear quick statuses from localStorage:', error);
+	}
+}
+
+/**
+ * Check if quick statuses exist in localStorage
+ */
+export function hasQuickStatuses(): boolean {
+	if (typeof window === 'undefined' || !window.localStorage) {
+		return false;
+	}
+
+	return localStorage.getItem(QUICK_STATUS_STORAGE_KEY) !== null;
+}
