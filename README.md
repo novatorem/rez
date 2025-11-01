@@ -37,7 +37,42 @@ You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
 
-https://icon-sets.iconify.design/
+<https://icon-sets.iconify.design/>
+
+# Real-time Updates
+
+The application supports real-time updates using Supabase Realtime. When enabled, users will automatically see:
+
+- New friend requests sent to them
+- Friend request acceptances/rejections
+- New friendships
+- Status updates from friends
+
+## Enabling Supabase Realtime
+
+For real-time updates to work, you need to enable Realtime replication on the following tables in your Supabase dashboard:
+
+1. Go to your Supabase project dashboard
+2. Navigate to **Database** → **Replication**
+3. Enable replication (via Publication) for these tables:
+   - `friend_requests`
+   - `friends`
+   - `profiles`
+
+Alternatively, you can enable replication via SQL:
+
+```sql
+-- Enable replication for friend_requests table
+ALTER PUBLICATION supabase_realtime ADD TABLE friend_requests;
+
+-- Enable replication for friends table
+ALTER PUBLICATION supabase_realtime ADD TABLE friends;
+
+-- Enable replication for profiles table
+ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
+```
+
+**Note:** Real-time subscriptions are optional. If Realtime is not enabled, the app will still function normally, but users will need to refresh the page to see updates.
 
 # TODO
 

@@ -1,0 +1,10 @@
+-- Shared function for updating the updated_at timestamp field
+-- Used by multiple tables: users, profiles, friend_requests
+CREATE OR REPLACE FUNCTION public.update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+

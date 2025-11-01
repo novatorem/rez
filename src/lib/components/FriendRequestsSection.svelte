@@ -1,15 +1,18 @@
 <script lang="ts">
 	import { getDisplayName } from '$lib/dashboard-utils';
 	import type { SupabaseClient, User } from '@supabase/supabase-js';
+	import Avatar from 'svelte-boring-avatars';
 
 	interface FriendRequest {
 		id: string;
+		requester_id: string;
 		requester_display_name: string | null;
 		requester_username: string;
 	}
 
 	interface SentFriendRequest {
 		id: string;
+		target_id: string;
 		target_display_name: string | null;
 		target_username: string;
 	}
@@ -94,11 +97,7 @@
 			// Check for existing outgoing friend request
 			const existingOutgoing = await checkExistingFriendRequest(supabase, user.id, targetUser.id);
 			if (existingOutgoing.exists) {
-				if (existingOutgoing.request?.status === 'pending') {
-					NotificationManager.showError('You have already sent a friend request to this user');
-				} else {
-					NotificationManager.showError('A friend request already exists with this user');
-				}
+				NotificationManager.showError('You have already sent a friend request to this user');
 				return;
 			}
 
@@ -324,15 +323,20 @@
 			<ul class="list">
 				{#each friendRequests as request (request.id)}
 					<li class="bg-base-300 rounded-box mb-2 p-2">
-						<div class="flex w-full items-center justify-between">
-							<div class="flex flex-col">
-								<span
-									>{getDisplayName(request.requester_display_name, request.requester_username)} wants
-									to be your friend</span
-								>
-								{#if request.requester_display_name}
-									<span class="text-base-content/60 text-xs">@{request.requester_username}</span>
-								{/if}
+						<div class="flex w-full items-center justify-between gap-3">
+							<div class="flex flex-1 items-center gap-3">
+								<div class="avatar">
+									<Avatar name={request.requester_id} size={40} variant="marble" />
+								</div>
+								<div class="flex flex-col">
+									<span
+										>{getDisplayName(request.requester_display_name, request.requester_username)} wants
+										to be your friend</span
+									>
+									{#if request.requester_display_name}
+										<span class="text-base-content/60 text-xs">@{request.requester_username}</span>
+									{/if}
+								</div>
 							</div>
 							<div class="join">
 								<button
@@ -394,12 +398,18 @@
 			<ul class="list">
 				{#each sentFriendRequests as request (request.id)}
 					<li class="bg-base-300 rounded-box group mb-2 p-2">
-						<div class="flex w-full items-center justify-between">
-							<div class="flex flex-col">
-								<span>{getDisplayName(request.target_display_name, request.target_username)}</span>
-								{#if request.target_display_name}
-									<span class="text-base-content/60 text-xs">@{request.target_username}</span>
-								{/if}
+						<div class="flex w-full items-center justify-between gap-3">
+							<div class="flex flex-1 items-center gap-3">
+								<div class="avatar">
+									<Avatar name={request.target_id} size={40} variant="marble" />
+								</div>
+								<div class="flex flex-col">
+									<span>{getDisplayName(request.target_display_name, request.target_username)}</span
+									>
+									{#if request.target_display_name}
+										<span class="text-base-content/60 text-xs">@{request.target_username}</span>
+									{/if}
+								</div>
 							</div>
 							<button
 								class="btn btn-sm btn-error"

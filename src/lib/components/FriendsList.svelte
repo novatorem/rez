@@ -4,6 +4,7 @@
 		formatStatusUpdatedAtTooltip,
 		getDisplayName
 	} from '$lib/dashboard-utils';
+	import Avatar from 'svelte-boring-avatars';
 
 	interface Friend {
 		id: string;
@@ -60,6 +61,103 @@
 	let draggedFriend: Friend | null = $state(null);
 	let draggedIndex: number = $state(-1);
 	let dragOverIndex: number = $state(-1);
+
+	// Touch drag state
+	let containerRef: HTMLDivElement | null = $state(null);
+	let activatedIndex: number = $state(-1); // Item activated for dragging (first touch)
+	let touchStartY: number = $state(0);
+	let touchStartTime: number = $state(0);
+
+	// Check if device supports touch
+	function isTouchDevice(): boolean {
+		return (
+			typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+		);
+	}
+
+	// Action to attach non-passive touch event listeners
+	function touchDragAction(
+		element: HTMLElement,
+		params: [Friend, number] | undefined
+	): { update?: (params: [Friend, number] | undefined) => void; destroy?: () => void } {
+		// Track if listeners are attached
+		let listenersAttached = false;
+		let currentFriend: Friend | null = null;
+		let currentIndex: number = -1;
+
+		// Handler functions that use the current values
+		function onTouchStart(event: TouchEvent) {
+			if (currentIndex !== -1 && currentFriend) {
+				clearActivationOnTouch(currentIndex);
+				handleTouchStart(event, currentFriend, currentIndex);
+			}
+		}
+
+		function onTouchMove(event: TouchEvent) {
+			handleTouchMove(event);
+		}
+
+		function onTouchEnd(event: TouchEvent) {
+			if (currentIndex !== -1) {
+				handleTouchEnd(event, currentIndex);
+			}
+		}
+
+		function onTouchCancel() {
+			handleTouchCancel();
+		}
+
+		function attachListeners() {
+			if (!listenersAttached) {
+				element.addEventListener('touchstart', onTouchStart, { passive: false });
+				element.addEventListener('touchmove', onTouchMove, { passive: false });
+				element.addEventListener('touchend', onTouchEnd, { passive: false });
+				element.addEventListener('touchcancel', onTouchCancel, { passive: false });
+				listenersAttached = true;
+			}
+		}
+
+		function cleanup() {
+			if (listenersAttached) {
+				element.removeEventListener('touchstart', onTouchStart);
+				element.removeEventListener('touchmove', onTouchMove);
+				element.removeEventListener('touchend', onTouchEnd);
+				element.removeEventListener('touchcancel', onTouchCancel);
+				listenersAttached = false;
+			}
+		}
+
+		// Initialize if params are provided
+		if (params) {
+			const [friend, index] = params;
+			currentFriend = friend;
+			currentIndex = index;
+			attachListeners();
+		}
+
+		return {
+			update(newParams: [Friend, number] | undefined) {
+				if (!newParams) {
+					cleanup();
+					currentFriend = null;
+					currentIndex = -1;
+					return;
+				}
+
+				const [newFriend, newIndex] = newParams;
+
+				// Attach listeners if they weren't attached before
+				if (!listenersAttached) {
+					attachListeners();
+				}
+
+				// Update references - the existing handlers will use the updated values via closure
+				currentFriend = newFriend;
+				currentIndex = newIndex;
+			},
+			destroy: cleanup
+		};
+	}
 
 	// Function to handle drag start
 	function handleDragStart(event: DragEvent, friend: Friend, index: number) {
@@ -122,20 +220,208 @@
 		draggedIndex = -1;
 		dragOverIndex = -1;
 	}
+
+	// Touch drag handlers
+	function handleTouchStart(event: TouchEvent, friend: Friend, index: number) {
+		if (!isTouchDevice()) return;
+
+		const touch = event.touches[0];
+		touchStartY = touch.clientY;
+		touchStartTime = Date.now();
+
+		// If this item is already activated, start dragging
+		if (activatedIndex === index) {
+			event.preventDefault();
+			draggedFriend = friend;
+			draggedIndex = index;
+		} else {
+			// Activate this item for dragging (first touch)
+			activatedIndex = index;
+			// Don't prevent default here - allow normal interaction
+		}
+	}
+
+	function handleTouchMove(event: TouchEvent) {
+		if (!isTouchDevice()) return;
+
+		const touch = event.touches[0];
+		const currentY = touch.clientY;
+		const moveDistance = Math.abs(currentY - touchStartY);
+
+		// If an item is activated but not yet dragging, check if we've moved enough to start dragging
+		if (activatedIndex !== -1 && draggedIndex === -1) {
+			// If moved more than 10px, start dragging
+			if (moveDistance > 10) {
+				const activatedFriend = friends[activatedIndex];
+				if (activatedFriend) {
+					draggedFriend = activatedFriend;
+					draggedIndex = activatedIndex;
+					// Now we're dragging, prevent default and continue with drag logic
+					event.preventDefault();
+				} else {
+					return;
+				}
+			} else {
+				// Not enough movement yet, don't prevent default - allow scrolling
+				return;
+			}
+		}
+
+		// Only proceed with drag logic if we're actually dragging
+		if (draggedIndex === -1) return;
+
+		event.preventDefault();
+
+		// Find which element we're over based on position
+		if (!containerRef) return;
+
+		const elements = containerRef.querySelectorAll('.draggable-item');
+		let targetIndex = draggedIndex;
+
+		// Find the element directly under the touch point
+		for (let i = 0; i < elements.length; i++) {
+			if (i === draggedIndex) continue; // Skip the dragged element
+
+			const el = elements[i] as HTMLElement;
+			const rect = el.getBoundingClientRect();
+
+			// Check if touch is within this element's vertical bounds
+			if (currentY >= rect.top && currentY <= rect.bottom) {
+				const centerY = rect.top + rect.height / 2;
+				// If touch is in the lower half, insert after this element
+				if (currentY >= centerY) {
+					targetIndex = i + 1;
+				} else {
+					// If touch is in the upper half, insert before this element
+					targetIndex = i;
+				}
+				break;
+			}
+			// If touch is above all elements
+			else if (currentY < rect.top) {
+				targetIndex = i;
+				break;
+			}
+		}
+
+		// If touch is below all elements, insert at the end
+		if (targetIndex === draggedIndex) {
+			const lastElement = elements[elements.length - 1] as HTMLElement;
+			if (lastElement && currentY > lastElement.getBoundingClientRect().bottom) {
+				targetIndex = elements.length - 1;
+			}
+		}
+
+		// Clamp targetIndex to valid range
+		targetIndex = Math.max(0, Math.min(targetIndex, elements.length - 1));
+
+		// Adjust if we're moving past the dragged index
+		if (targetIndex > draggedIndex) {
+			targetIndex = Math.min(targetIndex, elements.length - 1);
+		} else {
+			targetIndex = Math.max(0, targetIndex);
+		}
+
+		dragOverIndex = targetIndex;
+	}
+
+	function handleTouchEnd(event: TouchEvent, targetIndex: number) {
+		if (!isTouchDevice()) return;
+
+		// If we were just activated but didn't drag, check if it was a tap
+		if (activatedIndex !== -1 && draggedIndex === -1) {
+			const touchDuration = Date.now() - touchStartTime;
+			const touch = event.changedTouches[0];
+			const moveDistance = touch ? Math.abs(touch.clientY - touchStartY) : 0;
+
+			// If it was a quick tap with little movement, deactivate after a delay
+			if (touchDuration < 300 && moveDistance < 10) {
+				// Keep activated for now - user might want to drag next time
+				// Or clear after a timeout
+				setTimeout(() => {
+					if (draggedIndex === -1 && activatedIndex !== -1) {
+						activatedIndex = -1;
+					}
+				}, 2000); // Clear activation after 2 seconds if no drag started
+			}
+			return;
+		}
+
+		if (draggedIndex === -1) return;
+
+		event.preventDefault();
+
+		if (!draggedFriend || draggedIndex === -1) return;
+
+		// Use the dragOverIndex if it's valid, otherwise use the targetIndex
+		let finalTargetIndex = dragOverIndex !== -1 ? dragOverIndex : targetIndex;
+
+		// Adjust target index if moving down (we need to account for the removed item)
+		if (finalTargetIndex > draggedIndex) {
+			finalTargetIndex--;
+		}
+
+		// Don't do anything if dropping on the same position
+		if (draggedIndex === finalTargetIndex) {
+			draggedFriend = null;
+			draggedIndex = -1;
+			dragOverIndex = -1;
+			return;
+		}
+
+		// Create a new array with the reordered friends
+		const newFriends = [...friends];
+		const [movedFriend] = newFriends.splice(draggedIndex, 1);
+		newFriends.splice(finalTargetIndex, 0, movedFriend);
+
+		// Update the local friends array
+		friends = newFriends;
+
+		// Notify parent component about the reorder
+		onReorderFriends?.(newFriends);
+
+		// Reset drag state
+		draggedFriend = null;
+		draggedIndex = -1;
+		dragOverIndex = -1;
+		activatedIndex = -1;
+		touchStartY = 0;
+		touchStartTime = 0;
+	}
+
+	function handleTouchCancel() {
+		draggedFriend = null;
+		draggedIndex = -1;
+		dragOverIndex = -1;
+		activatedIndex = -1;
+		touchStartY = 0;
+		touchStartTime = 0;
+	}
+
+	// Clear activation when touching a different item
+	function clearActivationOnTouch(index: number) {
+		if (activatedIndex !== -1 && activatedIndex !== index && draggedIndex === -1) {
+			activatedIndex = -1;
+		}
+	}
 </script>
 
 <div class="card bg-base-200">
 	<div class="card-body">
 		<h2 class="card-title">My Friends</h2>
-		<div class="space-y-3">
+		<div class="space-y-3" bind:this={containerRef}>
 			{#if friends && friends.length > 0}
 				{#each friends as friend, index (friend.id)}
 					<div
 						class="draggable-item bg-base-300 rounded-box group cursor-move p-4 transition-all duration-200 hover:shadow-md {dragOverIndex ===
 						index
-							? 'ring-primary ring-opacity-50 bg-primary/10 ring-2'
-							: ''} {draggedIndex === index ? 'scale-105 opacity-50' : ''}"
-						draggable="true"
+							? 'drag-over-highlight bg-primary/10'
+							: ''} {draggedIndex === index ? 'dragging opacity-50' : ''} {activatedIndex ===
+							index && draggedIndex === -1
+							? 'activated'
+							: ''}"
+						use:touchDragAction={isTouchDevice() ? [friend, index] : undefined}
+						draggable={!isTouchDevice()}
 						role="button"
 						tabindex="0"
 						onkeydown={handleDragKeydown}
@@ -149,12 +435,8 @@
 							<!-- Avatar and Delete Button Container -->
 							<div class="flex flex-shrink-0 flex-col items-center gap-2">
 								<!-- Avatar -->
-								<div class="avatar avatar-placeholder">
-									<div class="bg-neutral text-neutral-content w-12 rounded-full">
-										<span>
-											{getDisplayName(friend.display_name, friend.username).charAt(0).toUpperCase()}
-										</span>
-									</div>
+								<div class="avatar">
+									<Avatar name={friend.id} size={48} variant="beam" />
 								</div>
 
 								<!-- Delete Button - Mobile only -->
@@ -318,9 +600,11 @@
 	/* Smooth transitions for drag states */
 	:global(.draggable-item) {
 		transition: all 0.2s ease-in-out;
+		/* Prevent layout shifts from transforms */
+		will-change: transform, opacity;
 	}
 
-	:global(.draggable-item:hover) {
+	:global(.draggable-item:hover:not(.dragging)) {
 		transform: translateY(-1px);
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 	}
@@ -328,5 +612,48 @@
 	/* Drag feedback styles */
 	:global(.draggable-item:active) {
 		cursor: grabbing;
+	}
+
+	/* Dragging state - use transform to avoid layout shifts */
+	/* Using higher specificity to ensure it overrides hover */
+	:global(.draggable-item.dragging) {
+		transform: scale(1.05) !important;
+		/* Use transform-origin to keep scaling centered */
+		transform-origin: center;
+	}
+
+	/* Drag over highlight - use box-shadow instead of ring to avoid layout shifts */
+	:global(.drag-over-highlight) {
+		box-shadow: 0 0 0 2px hsl(var(--p) / 0.5);
+	}
+
+	/* Activated state - visual feedback when item is ready to drag */
+	:global(.draggable-item.activated) {
+		box-shadow: 0 0 0 1px hsl(var(--p) / 0.3);
+		background-color: hsl(var(--b3) / 1);
+	}
+
+	/* Touch drag - prevent scrolling during drag */
+	@media (hover: none) and (pointer: coarse) {
+		:global(.draggable-item) {
+			touch-action: pan-y;
+		}
+
+		:global(.draggable-item.dragging) {
+			touch-action: none;
+		}
+	}
+
+	/* Prevent text selection during touch drag */
+	:global(.dragging) {
+		user-select: none;
+		-webkit-user-select: none;
+	}
+
+	/* Hide drag handle on non-touch devices */
+	@media (hover: hover) and (pointer: fine) {
+		:global(.touch-drag-handle) {
+			display: none;
+		}
 	}
 </style>

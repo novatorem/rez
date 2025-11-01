@@ -1,0 +1,77 @@
+-- Profiles table definition
+-- Stores user status and profile information
+
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  status TEXT CHECK (char_length(status) <= 42)
+);
+
+-- Enable row level security
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- Create trigger for updated_at
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'set_profile_timestamp'
+  ) THEN
+    CREATE TRIGGER set_profile_timestamp BEFORE UPDATE
+    ON public.profiles FOR EACH ROW
+    EXECUTE PROCEDURE public.update_timestamp();
+  END IF;
+END
+$$;
+
+-- RLS Policies
+
+-- Allow users to see all profiles (for public statuses)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can see all profiles' AND tablename = 'profiles' AND schemaname = 'public'
+  ) THEN
+    CREATE POLICY "Users can see all profiles"
+    ON public.profiles
+    FOR SELECT
+    TO authenticated
+    USING (true);
+  END IF;
+END
+$$;
+
+-- Allow users to update only their own profile
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can update their own profile' AND tablename = 'profiles' AND schemaname = 'public'
+  ) THEN
+    CREATE POLICY "Users can update their own profile"
+    ON public.profiles
+    FOR UPDATE
+    TO authenticated
+    USING (auth.uid() = id)
+    WITH CHECK (auth.uid() = id);
+  END IF;
+END
+$$;
+
+-- Allow users to insert their own profile
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can insert their own profile' AND tablename = 'profiles' AND schemaname = 'public'
+  ) THEN
+    CREATE POLICY "Users can insert their own profile"
+    ON public.profiles
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (auth.uid() = id);
+  END IF;
+END
+$$;
+
+-- Create index for performance
+CREATE INDEX IF NOT EXISTS idx_profiles_user ON public.profiles (id);
+

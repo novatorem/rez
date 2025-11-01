@@ -41,6 +41,7 @@
 		"@supabase/supabase-js": "^2.58.0",
 		"@thisux/sveltednd": "^0.0.20",
 		"daisyui": "^5.1.23",
+		"svelte-boring-avatars": "^1.2.6",
 		"theme-change": "^2.5.0"
 	}
 }

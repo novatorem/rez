@@ -1,0 +1,76 @@
+-- Users table definition
+-- References auth.users and stores user profile information including username and display name
+
+-- Create public.users table that references auth.users
+CREATE TABLE IF NOT EXISTS public.users (
+  id UUID PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
+  username TEXT UNIQUE NOT NULL,
+  email TEXT,
+  display_name TEXT CHECK (char_length(display_name) <= 50),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Enable row level security
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+-- Create trigger for updated_at
+DROP TRIGGER IF EXISTS set_timestamp ON public.users;
+CREATE TRIGGER set_timestamp BEFORE UPDATE
+ON public.users FOR EACH ROW
+EXECUTE PROCEDURE public.update_timestamp();
+
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_users_display_name ON public.users(display_name);
+
+-- RLS Policies
+
+-- Allow users to read all user data (for friend lists, friend requests, etc.)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can read all user data' AND tablename = 'users' AND schemaname = 'public'
+  ) THEN
+    CREATE POLICY "Users can read all user data"
+    ON public.users
+    FOR SELECT
+    TO authenticated
+    USING (true);
+  END IF;
+END
+$$;
+
+-- Allow users to update only their own data
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can update their own data' AND tablename = 'users' AND schemaname = 'public'
+  ) THEN
+    CREATE POLICY "Users can update their own data"
+    ON public.users
+    FOR UPDATE
+    TO authenticated
+    USING (auth.uid() = id)
+    WITH CHECK (auth.uid() = id);
+  END IF;
+END
+$$;
+
+-- Allow users to delete their own account
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can delete their own account' AND tablename = 'users' AND schemaname = 'public'
+  ) THEN
+    CREATE POLICY "Users can delete their own account"
+    ON public.users
+    FOR DELETE
+    TO authenticated
+    USING (auth.uid() = id);
+  END IF;
+END
+$$;
+
+-- Add column comments
+COMMENT ON COLUMN public.users.display_name IS 'User-friendly display name shown to other users. Can be different from username.';
+

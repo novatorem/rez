@@ -1,0 +1,100 @@
+-- Friend requests table definition
+-- Stores friend request relationships between users
+
+CREATE TABLE IF NOT EXISTS public.friend_requests (
+  id UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
+  requester_id UUID NOT NULL REFERENCES public.users (id) ON DELETE CASCADE,
+  target_id UUID NOT NULL REFERENCES public.users (id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  -- Ensure a user can't send multiple requests to the same person
+  UNIQUE (requester_id, target_id),
+  -- Add check constraint to ensure user can't send request to themselves
+  CONSTRAINT check_not_self_request CHECK (requester_id != target_id)
+);
+
+-- Enable row level security
+ALTER TABLE public.friend_requests ENABLE ROW LEVEL SECURITY;
+
+-- Create trigger for updated_at
+DROP TRIGGER IF EXISTS set_timestamp ON public.friend_requests;
+CREATE TRIGGER set_timestamp BEFORE UPDATE
+ON public.friend_requests FOR EACH ROW
+EXECUTE PROCEDURE public.update_timestamp();
+
+-- RLS Policies
+
+-- Allow users to see their own friend requests (as requester)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can see their own friend requests - as requester' AND tablename = 'friend_requests' AND schemaname = 'public'
+  ) THEN
+    CREATE POLICY "Users can see their own friend requests - as requester"
+    ON public.friend_requests
+    FOR SELECT
+    USING (auth.uid() = requester_id);
+  END IF;
+END
+$$;
+
+-- Allow users to see their own friend requests (as target)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can see their own friend requests - as target' AND tablename = 'friend_requests' AND schemaname = 'public'
+  ) THEN
+    CREATE POLICY "Users can see their own friend requests - as target"
+    ON public.friend_requests
+    FOR SELECT
+    USING (auth.uid() = target_id);
+  END IF;
+END
+$$;
+
+-- Allow users to create friend requests
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can create friend requests' AND tablename = 'friend_requests' AND schemaname = 'public'
+  ) THEN
+    CREATE POLICY "Users can create friend requests"
+    ON public.friend_requests
+    FOR INSERT
+    WITH CHECK (auth.uid() = requester_id);
+  END IF;
+END
+$$;
+
+-- Allow users to update friend requests they received
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can update their received friend requests' AND tablename = 'friend_requests' AND schemaname = 'public'
+  ) THEN
+    CREATE POLICY "Users can update their received friend requests"
+    ON public.friend_requests
+    FOR UPDATE
+    USING (auth.uid() = target_id);
+  END IF;
+END
+$$;
+
+-- Allow users to delete their own friend requests (as requester or target)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can delete their own friend requests' AND tablename = 'friend_requests' AND schemaname = 'public'
+  ) THEN
+    CREATE POLICY "Users can delete their own friend requests"
+    ON public.friend_requests
+    FOR DELETE
+    USING (auth.uid() = requester_id OR auth.uid() = target_id);
+  END IF;
+END
+$$;
+
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_friend_requests_requester ON public.friend_requests (requester_id);
+CREATE INDEX IF NOT EXISTS idx_friend_requests_target ON public.friend_requests (target_id);
+
