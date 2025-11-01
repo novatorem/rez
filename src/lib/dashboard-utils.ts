@@ -154,11 +154,11 @@ export async function checkExistingFriendRequest(
 	supabase: SupabaseClient,
 	requesterId: string,
 	targetId: string
-): Promise<{ exists: boolean; request?: { id: string; status: string } }> {
+): Promise<{ exists: boolean; request?: { id: string } }> {
 	try {
 		const { data: existingRequest, error } = await supabase
 			.from('friend_requests')
-			.select('id, status')
+			.select('id')
 			.eq('requester_id', requesterId)
 			.eq('target_id', targetId)
 			.maybeSingle();
@@ -185,7 +185,7 @@ export async function checkIncomingFriendRequest(
 	try {
 		const { data: incomingRequest, error } = await supabase
 			.from('friend_requests')
-			.select('id, status')
+			.select('id')
 			.eq('requester_id', targetId)
 			.eq('target_id', requesterId)
 			.maybeSingle();
@@ -194,9 +194,10 @@ export async function checkIncomingFriendRequest(
 			throw error;
 		}
 
+		// If a request exists, it's pending (requests are deleted when accepted/rejected)
 		return {
 			exists: !!incomingRequest,
-			isPending: incomingRequest?.status === 'pending'
+			isPending: !!incomingRequest
 		};
 	} catch (error) {
 		console.error('Error checking incoming friend request:', error);

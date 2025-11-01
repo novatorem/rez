@@ -1,0 +1,48 @@
+-- Function that generates a unique username for new users and creates their profile
+-- Triggered automatically when a new user is created in auth.users
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+DECLARE
+  base_username TEXT;
+  final_username TEXT;
+  counter INTEGER := 0;
+BEGIN
+  -- Create a base username from the user's email (before the @)
+  base_username := SPLIT_PART(NEW.email, '@', 1);
+  -- Remove any characters that are not letters, numbers, or underscores
+  base_username := REGEXP_REPLACE(base_username, '[^a-zA-Z0-9_]', '', 'g');
+
+  -- Handle empty base username (if email didn't have valid characters before @)
+  IF LENGTH(base_username) = 0 THEN
+    base_username := 'user';
+  END IF;
+
+  -- Start with the base username
+  final_username := base_username;
+
+  -- Keep adding a counter until we find a unique username
+  WHILE EXISTS (SELECT 1 FROM public.users WHERE username = final_username) LOOP
+    counter := counter + 1;
+    final_username := base_username || counter;
+  END LOOP;
+
+  -- Insert into public.users table with generated username
+  INSERT INTO public.users (id, username, email)
+  VALUES (NEW.id, final_username, NEW.email);
+
+  -- Also create the profile entry
+  INSERT INTO public.profiles (id)
+  VALUES (NEW.id)
+  ON CONFLICT (id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+-- Create a trigger that runs after a new user is created in auth.users
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+AFTER INSERT ON auth.users
+FOR EACH ROW
+EXECUTE PROCEDURE public.handle_new_user();
+

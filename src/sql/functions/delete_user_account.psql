@@ -20,23 +20,23 @@ BEGIN
     -- Delete all user-related data in the correct order
 
     -- 1. Delete all friend requests where user is requester or target
-    DELETE FROM friend_requests
-    WHERE friend_requests.requester_id = current_user_id OR friend_requests.target_id = current_user_id;
+    DELETE FROM public.friend_requests
+    WHERE requester_id = current_user_id OR target_id = current_user_id;
 
     -- 2. Delete all friendships where user is user_id or friend_id
     -- Note: We now store only one record per friendship, so this will delete all friendships
-    DELETE FROM friends
-    WHERE friends.user_id = current_user_id OR friends.friend_id = current_user_id;
+    DELETE FROM public.friends
+    WHERE user_id = current_user_id OR friend_id = current_user_id;
 
     -- 3. Delete user profile
-    DELETE FROM profiles WHERE profiles.id = current_user_id;
+    DELETE FROM public.profiles WHERE id = current_user_id;
 
     -- 4. Delete user record
-    DELETE FROM users WHERE users.id = current_user_id;
+    DELETE FROM public.users WHERE id = current_user_id;
 
     -- 5. Delete the auth user (this will cascade to any remaining references)
     -- Note: This requires the function to be SECURITY DEFINER and have proper permissions
-    DELETE FROM auth.users WHERE auth.users.id = current_user_id;
+    DELETE FROM auth.users WHERE id = current_user_id;
 
     -- If we get here, the deletion was successful
     RAISE NOTICE 'User account % deleted successfully', current_user_id;
@@ -50,12 +50,4 @@ $$;
 
 -- Grant execute permission to authenticated users
 GRANT EXECUTE ON FUNCTION public.delete_user_account() TO authenticated;
-
--- Create a policy to allow users to call this function
--- Note: The function itself checks for authentication, so we can allow all authenticated users
-CREATE POLICY "Users can delete their own account"
-ON public.users
-FOR DELETE
-TO authenticated
-USING (auth.uid() = id);
 

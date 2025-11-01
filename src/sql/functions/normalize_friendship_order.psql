@@ -1,0 +1,19 @@
+-- Function to normalize friendship order before insert/update
+-- This ensures user_id is always the smaller UUID in the friends table
+CREATE OR REPLACE FUNCTION public.normalize_friendship_order()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Swap if user_id is greater than friend_id
+  IF NEW.user_id > NEW.friend_id THEN
+    DECLARE
+      temp UUID;
+    BEGIN
+      temp := NEW.user_id;
+      NEW.user_id := NEW.friend_id;
+      NEW.friend_id := temp;
+    END;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+

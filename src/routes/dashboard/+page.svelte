@@ -9,6 +9,7 @@
 	import type { DashboardData } from '$lib/dashboard-data-loader';
 	import { getDisplayName } from '$lib/dashboard-utils';
 	import { friendOrderStore } from '$lib/friend-order-store';
+	import { RealtimeSubscriptionManager } from '$lib/realtime-subscriptions';
 
 	let { data } = $props();
 	let { supabase, user } = $derived(data);
@@ -17,6 +18,7 @@
 	let dashboardData = $state<DashboardData | null>(null);
 	let isLoadingData = $state(true);
 	let isInitialLoad = $state(true);
+	let hasLoadedData = false;
 
 	// Derived values from dashboard data
 	let currentStatus = $derived(dashboardData?.currentStatus || '');
@@ -37,11 +39,58 @@
 	let showDeleteModal = $state(false);
 	let friendToDelete = $state<{ id: string; name: string } | null>(null);
 
+	// Real-time subscription manager (non-reactive to avoid effect loops)
+	let subscriptionManager: RealtimeSubscriptionManager | null = null;
+	let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+	// Track the user ID we've subscribed for (non-reactive to avoid effect loops)
+	let subscribedUserId: string | null = null;
+
 	// Load dashboard data on client side - only run once when user/supabase become available
 	$effect(() => {
-		if (user && supabase) {
+		if (user && supabase && !hasLoadedData) {
 			loadDashboardData();
+			hasLoadedData = true;
 		}
+	});
+
+	// Set up real-time subscriptions separately - only when user changes
+	$effect(() => {
+		const userId = user?.id;
+
+		// If user/supabase unavailable, cleanup and exit
+		if (!userId || !supabase) {
+			if (subscribedUserId) {
+				cleanupRealtimeSubscriptions();
+				subscribedUserId = null;
+			}
+			return;
+		}
+
+		// If already subscribed for this user, just ensure cleanup on unmount
+		if (subscribedUserId === userId) {
+			return () => {
+				// Cleanup on unmount
+				if (subscribedUserId === userId) {
+					cleanupRealtimeSubscriptions();
+					subscribedUserId = null;
+				}
+			};
+		}
+
+		// Clean up old subscriptions if user changed
+		if (subscribedUserId && subscribedUserId !== userId) {
+			cleanupRealtimeSubscriptions();
+		}
+
+		// Set up new subscriptions
+		setupRealtimeSubscriptions();
+		subscribedUserId = userId;
+
+		// Cleanup on unmount
+		return () => {
+			cleanupRealtimeSubscriptions();
+			subscribedUserId = null;
+		};
 	});
 
 	const loadDashboardData = async (showSkeletons = true) => {
@@ -70,6 +119,46 @@
 
 	const refreshData = async () => {
 		await loadDashboardData(false); // Don't show skeletons on refresh
+	};
+
+	// Debounced refresh to avoid too many rapid refreshes from multiple events
+	const debouncedRefresh = () => {
+		if (refreshTimer) {
+			clearTimeout(refreshTimer);
+		}
+		refreshTimer = setTimeout(() => {
+			refreshData();
+		}, 300); // Wait 300ms for additional events to batch
+	};
+
+	// Set up real-time subscriptions
+	const setupRealtimeSubscriptions = () => {
+		if (!user || !supabase || subscriptionManager) return;
+
+		try {
+			const manager = new RealtimeSubscriptionManager(supabase, user.id);
+			manager.subscribe({
+				onFriendRequestChange: debouncedRefresh,
+				onFriendshipChange: debouncedRefresh,
+				onStatusChange: debouncedRefresh
+			});
+			subscriptionManager = manager;
+		} catch (error) {
+			console.error('Failed to set up real-time subscriptions:', error);
+			// Real-time subscriptions are optional - the app will still work without them
+		}
+	};
+
+	// Clean up real-time subscriptions
+	const cleanupRealtimeSubscriptions = () => {
+		if (refreshTimer) {
+			clearTimeout(refreshTimer);
+			refreshTimer = null;
+		}
+		if (subscriptionManager) {
+			subscriptionManager.unsubscribe();
+			subscriptionManager = null;
+		}
 	};
 
 	// Event handlers - defined as functions that can access current state
@@ -188,7 +277,7 @@
 </script>
 
 <div class="p-4">
-	{#if isInitialLoad && isLoadingData}
+	<!-- {#if isInitialLoad && isLoadingData}
 		<h1 class="text-2xl font-bold">
 			Welcome, <span class="skeleton inline-block h-8 w-32"></span>!
 		</h1>
@@ -201,7 +290,7 @@
 		</h1>
 	{/if}
 
-	<div class="divider"></div>
+	<div class="divider"></div> -->
 
 	<!-- Friends List - Full Width -->
 	{#if isInitialLoad && isLoadingData}
