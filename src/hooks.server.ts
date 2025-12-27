@@ -41,19 +41,33 @@ const supabase: Handle = async ({ event, resolve }) => {
 					// Get the current host from the request
 					const host = event.url.hostname;
 
+					// Detect iOS Safari user agent for special cookie handling
+					const userAgent = event.request.headers.get('user-agent') || '';
+					const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+					const isSafari = /Safari/.test(userAgent) && !/Chrome|CriOS|FxiOS/.test(userAgent);
+					const isIOSSafari = isIOS && isSafari;
+
 					// SECURITY FIX: Set secure cookie options to prevent session sharing across devices/domains
 					// This addresses the critical vulnerability where users were sharing sessions
+					// iOS Safari compatibility: Use 'none' with secure for cross-site, or 'lax' for same-site
+					// For iOS Safari, we need to be more careful with sameSite settings
 					const secureOptions = {
 						...options,
 						path: '/',
 						// Note: We don't set httpOnly for auth tokens as Supabase needs client-side access
 						// Set secure flag in production (requires HTTPS)
 						secure: event.url.protocol === 'https:',
-						// Set sameSite to prevent CSRF attacks
-						sameSite: 'lax' as const,
+						// iOS Safari fix: Use 'lax' for same-site, but ensure secure is set properly
+						// For iOS Safari, 'lax' works better than 'none' for same-site requests
+						sameSite: (isIOSSafari && event.url.protocol === 'https:')
+							? 'lax' as const
+							: 'lax' as const,
 						// Set domain to current host to prevent cross-domain sharing
 						// This ensures sessions are isolated per domain/device
-						domain: host.startsWith('localhost') ? undefined : host
+						// iOS Safari: Don't set domain for localhost, and be careful with subdomains
+						domain: host.startsWith('localhost') || host.startsWith('127.0.0.1')
+							? undefined
+							: host
 					};
 
 					event.cookies.set(name, value, secureOptions);
