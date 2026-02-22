@@ -1,8 +1,9 @@
-<script>
+<script lang="ts">
+	import type { SupabaseClient } from '@supabase/supabase-js';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 
-	export let supabase;
+	let { supabase }: { supabase: SupabaseClient | null } = $props();
 
 	const logout = async () => {
 		if (!supabase) return;

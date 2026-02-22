@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { MAX_STATUS_LENGTH } from '$lib/dashboard-utils';
-	import type { QuickStatus } from '$lib/quick-status-store';
+	import { MAX_STATUS_LENGTH } from '$lib/status/validation';
+	import type { QuickStatus } from '$lib/status/quick';
 	import type { EventHandler } from 'svelte/elements';
 
 	interface Props {

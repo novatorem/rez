@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { themeChange } from 'theme-change';
-	import { themes } from './themes';
-	import { toastStore } from './toast-store';
+	import { themes } from './themes.js';
+	import { toastStore } from './toast.js';
 
 	let currentTheme = $state('light');
 	let isLoading = $state(false);
