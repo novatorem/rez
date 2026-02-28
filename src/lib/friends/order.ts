@@ -8,7 +8,7 @@ interface Friend {
 	status_updated_at: string | null;
 }
 
-class FriendOrderStore {
+export class FriendOrderStore {
 	private order: string[] = [];
 	private readonly STORAGE_KEY = 'friend-order';
 
@@ -51,42 +51,34 @@ class FriendOrderStore {
 	 */
 	getOrderedFriends(friends: Friend[]): Friend[] {
 		if (this.order.length === 0) {
-			// If no order is stored, use the original order and save it
-			this.order = friends.map(friend => friend.id);
+			// No stored order — persist the incoming order and return it as-is
+			this.order = friends.map((f) => f.id);
 			this.saveToStorage();
 			return friends;
 		}
 
-		// Create a map for quick lookup
-		const friendMap = new Map(friends.map(friend => [friend.id, friend]));
+		const storedSet = new Set(this.order);
+		const friendMap = new Map(friends.map((f) => [f.id, f]));
 
-		// Build ordered array based on stored order
-		const orderedFriends: Friend[] = [];
-		const remainingFriends: Friend[] = [];
-
-		// First, add friends in the stored order
-		for (const friendId of this.order) {
-			const friend = friendMap.get(friendId);
-			if (friend) {
-				orderedFriends.push(friend);
-			}
+		// Apply stored order, skipping IDs no longer in the friend list
+		const ordered: Friend[] = [];
+		for (const id of this.order) {
+			const f = friendMap.get(id);
+			if (f) ordered.push(f);
 		}
 
-		// Then add any new friends that weren't in the stored order
-		for (const friend of friends) {
-			if (!this.order.includes(friend.id)) {
-				remainingFriends.push(friend);
-			}
+		// Collect friends not yet in the stored order (newly added friends)
+		const newFriends = friends.filter((f) => !storedSet.has(f.id));
+
+		if (newFriends.length > 0) {
+			// Append new friends and persist the updated order
+			const result = [...ordered, ...newFriends];
+			this.order = result.map((f) => f.id);
+			this.saveToStorage();
+			return result;
 		}
 
-		// Combine ordered and remaining friends
-		const result = [...orderedFriends, ...remainingFriends];
-
-		// Update the stored order to include any new friends
-		this.order = result.map(friend => friend.id);
-		this.saveToStorage();
-
-		return result;
+		return ordered;
 	}
 
 	/**
@@ -105,15 +97,6 @@ class FriendOrderStore {
 		this.saveToStorage();
 	}
 
-	/**
-	 * Clear the stored order (useful for testing or reset)
-	 */
-	clearOrder(): void {
-		this.order = [];
-		if (browser) {
-			localStorage.removeItem(this.STORAGE_KEY);
-		}
-	}
 }
 
 // Export a singleton instance

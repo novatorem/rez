@@ -97,4 +97,35 @@ $$;
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_friend_requests_requester ON public.friend_requests (requester_id);
 CREATE INDEX IF NOT EXISTS idx_friend_requests_target ON public.friend_requests (target_id);
+-- Composite index used by the rate-limit policy to count recent requests efficiently.
+CREATE INDEX IF NOT EXISTS idx_friend_requests_requester_created
+  ON public.friend_requests (requester_id, created_at);
+
+-- Rate limiting: restrict inserts to a maximum of 20 requests per user per hour.
+-- This is a RESTRICTIVE policy, which means it is ANDed with the permissive INSERT
+-- policy above rather than ORed — both must pass for an insert to succeed.
+-- The composite index on (requester_id, created_at) keeps this subquery fast.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE policyname = 'Rate limit friend requests per hour'
+    AND tablename = 'friend_requests'
+    AND schemaname = 'public'
+  ) THEN
+    CREATE POLICY "Rate limit friend requests per hour"
+    ON public.friend_requests
+    AS RESTRICTIVE
+    FOR INSERT
+    WITH CHECK (
+      (
+        SELECT COUNT(*)
+        FROM public.friend_requests
+        WHERE requester_id = auth.uid()
+          AND created_at > NOW() - INTERVAL '1 hour'
+      ) < 20
+    );
+  END IF;
+END
+$$;
 

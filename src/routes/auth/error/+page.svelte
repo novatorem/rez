@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/stores';
-	import DebugPanel from '$lib/components/DebugPanel.svelte';
+	import DebugPanel from '$lib/ui/DebugPanel.svelte';
 
 	let debugPanel: DebugPanel | null = $state(null);
 	let errorMessage = $state<string | null>(null);
