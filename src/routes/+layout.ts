@@ -2,15 +2,6 @@ import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/publi
 import { createBrowserClient, createServerClient, isBrowser } from '@supabase/ssr';
 import type { LayoutLoad } from './$types';
 
-// Custom fetch function for browser client
-const customBrowserFetch = (url: RequestInfo | URL, init?: RequestInit) => {
-	return fetch(url, {
-		...init
-		// In browser context, we don't need to modify fetch options,
-		// but we could add custom headers or other configuration here if needed
-	});
-};
-
 export const load: LayoutLoad = async ({ data, depends, fetch }) => {
 	/**
 	 * Declare a dependency so the layout can be invalidated, for example, on
@@ -19,11 +10,7 @@ export const load: LayoutLoad = async ({ data, depends, fetch }) => {
 	depends('supabase:auth');
 
 	const supabase = isBrowser()
-		? createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
-				global: {
-					fetch: customBrowserFetch
-				}
-			})
+		? createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY)
 		: createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
 				global: {
 					fetch

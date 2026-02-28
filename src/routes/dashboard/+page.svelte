@@ -1,15 +1,17 @@
 <script lang="ts">
-	import DeleteFriendModal from '$lib/components/DeleteFriendModal.svelte';
-	import FriendRequestsSection from '$lib/components/FriendRequestsSection.svelte';
-	import FriendRequestsSectionSkeleton from '$lib/components/FriendRequestsSectionSkeleton.svelte';
-	import FriendsList from '$lib/components/FriendsList.svelte';
-	import LoadingSkeletons from '$lib/components/LoadingSkeletons.svelte';
-	import StatusSection from '$lib/components/StatusSection.svelte';
-	import StatusSectionSkeleton from '$lib/components/StatusSectionSkeleton.svelte';
-	import type { DashboardData } from '$lib/dashboard-data-loader';
-	import { getDisplayName } from '$lib/dashboard-utils';
-	import { friendOrderStore } from '$lib/friend-order-store';
-	import { RealtimeSubscriptionManager } from '$lib/realtime-subscriptions';
+	import DeleteFriendModal from '$lib/friends/components/DeleteModal.svelte';
+	import FriendRequestsSection from '$lib/friends/components/Requests.svelte';
+	import FriendRequestsSectionSkeleton from '$lib/friends/components/RequestsSkeleton.svelte';
+	import FriendsList from '$lib/friends/components/List.svelte';
+	import LoadingSkeletons from '$lib/friends/components/ListSkeleton.svelte';
+	import StatusSection from '$lib/status/components/Section.svelte';
+	import StatusSectionSkeleton from '$lib/status/components/Skeleton.svelte';
+	import { DashboardDataLoader, type DashboardData } from '$lib/dashboard/loader';
+	import { getDisplayName, handleDatabaseError, NotificationManager } from '$lib/ui/notifications';
+	import { validateStatus } from '$lib/status/validation';
+	import { verifyFriendshipExists } from '$lib/friends/api';
+	import { friendOrderStore } from '$lib/friends/order';
+	import { RealtimeSubscriptionManager } from '$lib/realtime/subscriptions';
 
 	let { data } = $props();
 	let { supabase, user } = $derived(data);
@@ -18,6 +20,7 @@
 	let dashboardData = $state<DashboardData | null>(null);
 	let isLoadingData = $state(true);
 	let isInitialLoad = $state(true);
+	let isReady = $derived(!(isInitialLoad && isLoadingData));
 	let hasLoadedData = false;
 
 	// Derived values from dashboard data
@@ -102,11 +105,12 @@
 		}
 
 		try {
-			const { DashboardDataLoader } = await import('$lib/dashboard-data-loader');
 			const dataLoader = new DashboardDataLoader(supabase, user.id);
 			dashboardData = await dataLoader.loadAllData();
+			// Keep the profiles subscription scoped to the current friend list.
+			// Safe to call on every refresh — no-op when the list hasn't changed.
+			subscriptionManager?.updateFriendIds(dashboardData.friends.map((f) => f.id));
 		} catch (error) {
-			const { handleDatabaseError } = await import('$lib/dashboard-utils');
 			handleDatabaseError(error, 'load dashboard data');
 		} finally {
 			if (showSkeletons) {
@@ -166,10 +170,6 @@
 		evt.preventDefault();
 		if (!user || !supabase) return;
 
-		const { validateStatus, handleDatabaseError, NotificationManager } = await import(
-			'$lib/dashboard-utils'
-		);
-
 		const validationError = validateStatus(statusInputText);
 		if (validationError) {
 			NotificationManager.showError(validationError);
@@ -222,14 +222,10 @@
 	const confirmDeleteFriend = async () => {
 		if (!friendToDelete || !user || !supabase) return;
 
-		const { verifyFriendshipExists, handleDatabaseError, NotificationManager } = await import(
-			'$lib/dashboard-utils'
-		);
 		const friendId = friendToDelete.id;
 
 		// Add to deleting set to show loading state
-		deletingFriends.add(friendId);
-		deletingFriends = deletingFriends;
+		deletingFriends = new Set([...deletingFriends, friendId]);
 
 		try {
 			// First, verify the friendship exists before attempting deletion
@@ -262,8 +258,7 @@
 		} catch (error) {
 			handleDatabaseError(error, 'remove friend');
 		} finally {
-			deletingFriends.delete(friendId);
-			deletingFriends = deletingFriends;
+			deletingFriends = new Set([...deletingFriends].filter((id) => id !== friendId));
 			// Close modal
 			showDeleteModal = false;
 			friendToDelete = null;
@@ -277,24 +272,12 @@
 </script>
 
 <div class="p-4">
-	<!-- {#if isInitialLoad && isLoadingData}
-		<h1 class="text-2xl font-bold">
-			Welcome, <span class="skeleton inline-block h-8 w-32"></span>!
-		</h1>
-	{:else}
-		<h1 class="text-2xl font-bold">
-			Welcome, {getDisplayName(
-				dashboardData?.currentDisplayName || null,
-				dashboardData?.currentUsername || ''
-			)}!
-		</h1>
-	{/if}
-
-	<div class="divider"></div> -->
-
-	<!-- Friends List - Full Width -->
-	{#if isInitialLoad && isLoadingData}
+	{#if !isReady}
 		<LoadingSkeletons />
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+			<StatusSectionSkeleton />
+			<FriendRequestsSectionSkeleton />
+		</div>
 	{:else}
 		<div class="mb-4">
 			<FriendsList
@@ -304,13 +287,8 @@
 				onReorderFriends={handleReorderFriends}
 			/>
 		</div>
-	{/if}
 
-	<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-		<!-- Status Section -->
-		{#if isInitialLoad && isLoadingData}
-			<StatusSectionSkeleton />
-		{:else}
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 			<StatusSection
 				{currentStatus}
 				{isUpdatingStatus}
@@ -318,12 +296,6 @@
 				onStatusUpdate={handleStatusUpdate}
 				bind:statusInputText
 			/>
-		{/if}
-
-		<!-- Friend Request Section -->
-		{#if isInitialLoad && isLoadingData}
-			<FriendRequestsSectionSkeleton />
-		{:else}
 			<FriendRequestsSection
 				{friendRequests}
 				{sentFriendRequests}
@@ -331,8 +303,8 @@
 				{user}
 				onDataRefresh={refreshData}
 			/>
-		{/if}
-	</div>
+		</div>
+	{/if}
 </div>
 
 <!-- Friend Deletion Confirmation Modal -->

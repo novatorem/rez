@@ -1,0 +1,82 @@
+-- Function to load all dashboard data in a single round trip.
+-- Returns a JSON object containing the current user's profile, incoming
+-- friend requests, outgoing (sent) friend requests, and their friends list
+-- with statuses.
+--
+-- SECURITY INVOKER (default) means the function runs as the calling user, so
+-- all RLS policies on the underlying tables apply automatically — no need to
+-- re-implement access control here.
+--
+-- STABLE tells the planner the function does not modify the database and
+-- returns the same result for the same inputs within a single transaction,
+-- enabling call-site optimisations.
+CREATE OR REPLACE FUNCTION public.get_dashboard_data()
+RETURNS json
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+  SELECT json_build_object(
+    'username',     u.username,
+    'display_name', u.display_name,
+    'status',       COALESCE(p.status, ''),
+
+    -- Incoming friend requests sent to this user
+    'friend_requests', (
+      SELECT COALESCE(json_agg(json_build_object(
+        'id',                     fr.id,
+        'requester_id',           fr.requester_id,
+        'requester_username',     COALESCE(ru.username, 'Unknown user'),
+        'requester_display_name', ru.display_name
+      )), '[]'::json)
+      FROM   public.friend_requests fr
+      JOIN   public.users           ru ON ru.id = fr.requester_id
+      WHERE  fr.target_id = auth.uid()
+    ),
+
+    -- Outgoing friend requests sent by this user
+    'sent_friend_requests', (
+      SELECT COALESCE(json_agg(json_build_object(
+        'id',                  fr.id,
+        'target_id',           fr.target_id,
+        'target_username',     COALESCE(tu.username, 'Unknown user'),
+        'target_display_name', tu.display_name,
+        'created_at',          fr.created_at
+      )), '[]'::json)
+      FROM   public.friend_requests fr
+      JOIN   public.users           tu ON tu.id = fr.target_id
+      WHERE  fr.requester_id = auth.uid()
+    ),
+
+    -- Friends with their current status.
+    -- The friends table stores one record per pair with user_id < friend_id
+    -- (enforced by the normalize_friendship_order trigger), so the current
+    -- user can appear in either column — the CASE picks the other person.
+    'friends', (
+      SELECT COALESCE(json_agg(json_build_object(
+        'id',                friend_ids.other_id,
+        'username',          fu.username,
+        'display_name',      fu.display_name,
+        'status',            fp.status,
+        'status_updated_at', fp.updated_at
+      )), '[]'::json)
+      FROM (
+        SELECT CASE
+          WHEN f.user_id = auth.uid() THEN f.friend_id
+          ELSE f.user_id
+        END AS other_id
+        FROM public.friends f
+        WHERE f.user_id = auth.uid() OR f.friend_id = auth.uid()
+      ) AS friend_ids
+      JOIN      public.users    fu ON fu.id = friend_ids.other_id
+      LEFT JOIN public.profiles fp ON fp.id = friend_ids.other_id
+    )
+  )
+  FROM      public.users    u
+  LEFT JOIN public.profiles p ON p.id = u.id
+  WHERE     u.id = auth.uid()
+$$;
+
+-- Grant execute permission to authenticated users only
+GRANT EXECUTE ON FUNCTION public.get_dashboard_data() TO authenticated;

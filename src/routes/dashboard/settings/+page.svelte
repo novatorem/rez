@@ -1,19 +1,20 @@
 <script lang="ts">
-	import { DashboardDataLoader, type DashboardData } from '$lib/dashboard-data-loader';
+	import { DashboardDataLoader, type DashboardData } from '$lib/dashboard/loader';
+	import { checkUsernameAvailability } from '$lib/profile/api';
 	import {
-		checkUsernameAvailability,
 		ERROR_MESSAGES,
-		handleDatabaseError,
 		MAX_DISPLAY_NAME_LENGTH,
-		MAX_STATUS_LENGTH,
 		MAX_USERNAME_LENGTH,
 		sanitizeDisplayName,
+		sanitizeUsername,
 		validateDisplayName,
 		validateUsername
-	} from '$lib/dashboard-utils';
-	import { getQuickStatuses, saveQuickStatuses } from '$lib/quick-status-store';
-	import ThemeSelect from '$lib/theme-select.svelte';
-	import { toastStore } from '$lib/toast-store';
+	} from '$lib/profile/validation';
+	import { MAX_STATUS_LENGTH } from '$lib/status/validation';
+	import { getQuickStatuses, saveQuickStatuses } from '$lib/status/quick';
+	import ThemeSelect from '$lib/ui/ThemeSelect.svelte';
+	import { toastStore } from '$lib/ui/toast';
+	import { handleDatabaseError } from '$lib/ui/notifications';
 	import { onMount } from 'svelte';
 
 	let { data } = $props();
@@ -180,7 +181,7 @@
 
 			// Validate all statuses
 			for (const qs of validStatuses) {
-				const { validateStatus } = await import('$lib/dashboard-utils');
+				const { validateStatus } = await import('$lib/status/validation');
 				const validationError = validateStatus(qs.text);
 				if (validationError) {
 					toastStore.error(`Status ${qs.order + 1}: ${validationError}`);
@@ -204,7 +205,8 @@
 		evt.preventDefault();
 		if (!session?.user || !supabase) return;
 
-		const validationError = validateUsername(usernameText);
+		const sanitizedUsername = sanitizeUsername(usernameText);
+		const validationError = validateUsername(sanitizedUsername);
 		if (validationError) {
 			toastStore.error(validationError);
 			return;
@@ -213,7 +215,7 @@
 		isUpdatingUsername = true;
 		try {
 			// Check if username is available
-			const isAvailable = await checkUsernameAvailability(supabase, usernameText, session.user.id);
+			const isAvailable = await checkUsernameAvailability(supabase, sanitizedUsername, session.user.id);
 			if (!isAvailable) {
 				toastStore.error(ERROR_MESSAGES.USERNAME_TAKEN);
 				return;
@@ -222,7 +224,7 @@
 			// Update username
 			const { error } = await supabase
 				.from('users')
-				.update({ username: usernameText })
+				.update({ username: sanitizedUsername })
 				.eq('id', session.user.id);
 
 			if (error) {

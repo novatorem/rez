@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { invalidate } from '$app/navigation';
 	import { page } from '$app/state';
-	import Footer from '$lib/Footer.svelte';
-	import ToastContainer from '$lib/ToastContainer.svelte';
+	import Footer from '$lib/ui/Footer.svelte';
+	import ToastContainer from '$lib/ui/ToastContainer.svelte';
 	import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 	import { themeChange } from 'theme-change';
 	import '../app.css';

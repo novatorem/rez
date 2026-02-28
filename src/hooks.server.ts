@@ -6,7 +6,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public';
-import { themes } from '$lib/themes';
+import { themes } from '$lib/ui/themes';
 import { createServerClient } from '@supabase/ssr';
 import { type Handle, redirect } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';

@@ -83,28 +83,3 @@ function getDefaultQuickStatuses(): QuickStatus[] {
 	];
 }
 
-/**
- * Clear all quick statuses from localStorage
- */
-export function clearQuickStatuses(): void {
-	if (typeof window === 'undefined' || !window.localStorage) {
-		return;
-	}
-
-	try {
-		localStorage.removeItem(QUICK_STATUS_STORAGE_KEY);
-	} catch (error) {
-		console.error('Failed to clear quick statuses from localStorage:', error);
-	}
-}
-
-/**
- * Check if quick statuses exist in localStorage
- */
-export function hasQuickStatuses(): boolean {
-	if (typeof window === 'undefined' || !window.localStorage) {
-		return false;
-	}
-
-	return localStorage.getItem(QUICK_STATUS_STORAGE_KEY) !== null;
-}

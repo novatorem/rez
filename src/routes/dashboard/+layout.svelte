@@ -1,5 +1,5 @@
 <script>
-	import Navigation from '$lib/Navigation.svelte';
+	import Navigation from '$lib/ui/Navigation.svelte';
 
 	let { data, children } = $props();
 	let { supabase } = $derived(data);

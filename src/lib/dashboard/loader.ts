@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '../database.types';
-import { getQuickStatuses, type QuickStatus } from './quick-status-store';
+import type { Database } from '../../database.types';
+import { getQuickStatuses, type QuickStatus } from '../status/quick.js';
 
 // Types for the dashboard data
 export interface FriendRequest {
@@ -83,6 +83,33 @@ export interface UserExportData {
 // Utility function to remove duplicates by ID
 const deduplicateById = <T extends { id: string }>(items: T[]): T[] =>
 	items.filter((item, index, self) => index === self.findIndex((other) => other.id === item.id));
+
+// Shape of the JSON object returned by the get_dashboard_data() RPC function.
+interface DashboardRpcResult {
+	username: string;
+	display_name: string | null;
+	status: string;
+	friend_requests: Array<{
+		id: string;
+		requester_id: string;
+		requester_username: string;
+		requester_display_name: string | null;
+	}>;
+	sent_friend_requests: Array<{
+		id: string;
+		target_id: string;
+		target_username: string;
+		target_display_name: string | null;
+		created_at: string;
+	}>;
+	friends: Array<{
+		id: string;
+		username: string;
+		display_name: string | null;
+		status: string | null;
+		status_updated_at: string | null;
+	}>;
+}
 
 export class DashboardDataLoader {
 	private supabase: SupabaseClient<Database>;
@@ -208,24 +235,27 @@ export class DashboardDataLoader {
 	}
 
 	async loadAllData(): Promise<DashboardData> {
-		// Load all data in parallel for better performance
-		const [userProfile, friendRequests, sentFriendRequests, friends, quickStatuses] =
-			await Promise.all([
-				this.loadUserProfile(),
-				this.loadFriendRequests(),
-				this.loadSentFriendRequests(),
-				this.loadFriends(),
-				this.loadQuickStatuses()
-			]);
+		const rpcResult = await this.supabase.rpc(
+			'get_dashboard_data' as keyof Database['public']['Functions']
+		);
+
+		if (rpcResult.error) {
+			throw rpcResult.error;
+		}
+
+		const data = rpcResult.data as DashboardRpcResult | null;
+		if (!data) {
+			throw new Error('No dashboard data returned');
+		}
 
 		return {
-			currentUsername: userProfile.username,
-			currentDisplayName: userProfile.display_name,
-			currentStatus: userProfile.status,
-			friendRequests,
-			sentFriendRequests,
-			friends,
-			quickStatuses
+			currentUsername: data.username,
+			currentDisplayName: data.display_name,
+			currentStatus: data.status,
+			friendRequests: data.friend_requests,
+			sentFriendRequests: data.sent_friend_requests,
+			friends: data.friends,
+			quickStatuses: getQuickStatuses()
 		};
 	}
 
@@ -287,27 +317,13 @@ export class DashboardDataLoader {
 			);
 
 			if (error) {
-				console.error('Error deleting user account:', error);
-				console.error('Full error details:', {
-					message: error.message,
-					details: error.details,
-					hint: error.hint,
-					code: error.code
-				});
-				throw new Error(
-					`Failed to delete account: ${error.message}${error.details ? ` (${error.details})` : ''}${error.hint ? ` Hint: ${error.hint}` : ''}`
-				);
+				throw new Error(`Failed to delete account: ${error.message}`);
 			}
-
-			console.log('User account deleted successfully');
 		} catch (error) {
-			console.error('Account deletion failed:', error);
-			// Re-throw the error with enhanced information if it's a Supabase error
 			if (error instanceof Error) {
 				throw error;
-			} else {
-				throw new Error(`Account deletion failed: ${String(error)}`);
 			}
+			throw new Error(`Account deletion failed: ${String(error)}`);
 		}
 	}
 }

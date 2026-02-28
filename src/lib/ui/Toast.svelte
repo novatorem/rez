@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
-	import type { Toast } from './toast-store.js';
-	import { toastStore } from './toast-store.js';
+	import type { Toast } from './toast.js';
+	import { toastStore } from './toast.js';
 
 	let { toast }: { toast: Toast } = $props();
 

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { getDisplayName } from '$lib/dashboard-utils';
+	import { checkExistingFriendRequest, checkIncomingFriendRequest } from '$lib/friends/api';
+	import { getDisplayName, handleDatabaseError, NotificationManager } from '$lib/ui/notifications';
 	import type { SupabaseClient, User } from '@supabase/supabase-js';
 	import Avatar from 'svelte-boring-avatars';
 
@@ -31,17 +32,14 @@
 	let isSendingFriendRequest = $state(false);
 	let processingRequests = $state(new Set<string>());
 	let cancellingRequests = $state(new Set<string>());
+	// Brief cooldown after each send attempt to prevent accidental rapid-fire submissions.
+	let canSendRequest = $state(true);
+
+	const RATE_LIMIT_PER_HOUR = 20;
 
 	const handleFriendRequest = async (evt: SubmitEvent) => {
 		evt.preventDefault();
-		if (!user || !supabase) return;
-
-		const {
-			handleDatabaseError,
-			NotificationManager,
-			checkExistingFriendRequest,
-			checkIncomingFriendRequest
-		} = await import('$lib/dashboard-utils');
+		if (!user || !supabase || !canSendRequest) return;
 
 		const formData = new FormData(evt.target as HTMLFormElement);
 		const username = formData.get('username') as string;
@@ -53,6 +51,23 @@
 
 		isSendingFriendRequest = true;
 		try {
+			// Rate limit pre-check: count requests sent in the last hour.
+			// The server enforces the same limit via a RESTRICTIVE RLS policy, but
+			// checking here first lets us show a helpful message instead of a generic error.
+			const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+			const { count, error: countError } = await supabase
+				.from('friend_requests')
+				.select('id', { count: 'exact', head: true })
+				.eq('requester_id', user.id)
+				.gte('created_at', oneHourAgo);
+
+			if (!countError && count !== null && count >= RATE_LIMIT_PER_HOUR) {
+				NotificationManager.showError(
+					`You've sent ${RATE_LIMIT_PER_HOUR} friend requests in the last hour. Please wait before sending more.`
+				);
+				return;
+			}
+
 			// First, find the target user by username
 			const { data: targetUser, error: userError } = await supabase
 				.from('users')
@@ -117,7 +132,14 @@
 			});
 
 			if (insertError) {
-				handleDatabaseError(insertError, 'send friend request');
+				// 42501 = RLS policy violation — the server-side rate limit was hit.
+				if (insertError.code === '42501') {
+					NotificationManager.showError(
+						`You've reached the limit of ${RATE_LIMIT_PER_HOUR} friend requests per hour. Please try again later.`
+					);
+				} else {
+					handleDatabaseError(insertError, 'send friend request');
+				}
 				return;
 			}
 
@@ -130,17 +152,19 @@
 			handleDatabaseError(error, 'send friend request');
 		} finally {
 			isSendingFriendRequest = false;
+			// Apply a short cooldown regardless of outcome to prevent rapid-fire clicks.
+			canSendRequest = false;
+			setTimeout(() => {
+				canSendRequest = true;
+			}, 2000);
 		}
 	};
 
 	const handleFriendRequestAction = async (requestId: string, action: 'accept' | 'reject') => {
 		if (!user || !supabase) return;
 
-		const { handleDatabaseError, NotificationManager } = await import('$lib/dashboard-utils');
-
 		// Add to processing set
-		processingRequests.add(requestId);
-		processingRequests = processingRequests;
+		processingRequests = new Set([...processingRequests, requestId]);
 
 		try {
 			// Get the friend request details
@@ -162,7 +186,6 @@
 			}
 
 			if (action === 'accept') {
-				console.log('Accepting friend request:', { requestId, friendRequest });
 
 				// First check if friendship already exists (prevent duplicates)
 				const { data: existingFriendship } = await supabase
@@ -174,20 +197,15 @@
 					.limit(1);
 
 				if (existingFriendship && existingFriendship.length > 0) {
-					console.log('Friendship already exists:', existingFriendship);
 					NotificationManager.showError('You are already friends with this user');
 					return;
 				}
 
-				// Create single friendship record - trigger will normalize the order
-				console.log('Creating friendship record...');
 				const { error: insertError } = await supabase
 					.from('friends')
 					.insert({ user_id: user.id, friend_id: friendRequest.requester_id });
 
 				if (insertError) {
-					console.error('Friendship creation error:', insertError);
-
 					// If it's a duplicate key error, it means the friendship already exists
 					if (insertError.code === '23505') {
 						NotificationManager.showError('You are already friends with this user');
@@ -197,7 +215,6 @@
 					return;
 				}
 
-				console.log('Friendship record created successfully');
 
 				// Delete the friend request since it's been accepted
 				const { error: deleteError } = await supabase
@@ -227,23 +244,18 @@
 			}
 
 			await onDataRefresh();
-			console.log('Data refresh completed after friend request action');
 		} catch (error) {
 			handleDatabaseError(error, `${action} friend request`);
 		} finally {
-			processingRequests.delete(requestId);
-			processingRequests = processingRequests;
+			processingRequests = new Set([...processingRequests].filter((id) => id !== requestId));
 		}
 	};
 
 	const handleCancelFriendRequest = async (requestId: string) => {
 		if (!user || !supabase) return;
 
-		const { handleDatabaseError, NotificationManager } = await import('$lib/dashboard-utils');
-
 		// Add to cancelling set
-		cancellingRequests.add(requestId);
-		cancellingRequests = cancellingRequests;
+		cancellingRequests = new Set([...cancellingRequests, requestId]);
 
 		try {
 			// Delete the friend request
@@ -263,8 +275,7 @@
 		} catch (error) {
 			handleDatabaseError(error, 'cancel friend request');
 		} finally {
-			cancellingRequests.delete(requestId);
-			cancellingRequests = cancellingRequests;
+			cancellingRequests = new Set([...cancellingRequests].filter((id) => id !== requestId));
 		}
 	};
 </script>
@@ -302,7 +313,7 @@
 						/>
 					</label>
 				</div>
-				<button class="btn btn-neutral join-item" disabled={isSendingFriendRequest}>
+				<button class="btn btn-neutral join-item" disabled={isSendingFriendRequest || !canSendRequest}>
 					{#if isSendingFriendRequest}
 						<span class="loading loading-spinner loading-sm"></span>
 					{:else}

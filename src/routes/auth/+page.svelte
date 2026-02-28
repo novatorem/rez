@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import DebugPanel from '$lib/components/DebugPanel.svelte';
+	import { applyAction, enhance } from '$app/forms';
+	import DebugPanel from '$lib/ui/DebugPanel.svelte';
 
 	let activeTab = $state<'login' | 'signup'>('login');
 	let signupError = $state<string | null>(null);
@@ -23,7 +23,6 @@
 		signupError = null;
 		loginError = null;
 		signupSuccess = null;
-		hasAuthError = false;
 	}
 </script>
 
@@ -110,11 +109,11 @@
 							if (result.type === 'failure' && result.data) {
 								const data = result.data as { error?: string; errorCode?: string };
 								loginError = data.error || 'Login failed. Please try again.';
-								hasAuthError = true;
-								// Log to debug panel
 								if (debugPanel) {
-									debugPanel.addDebugLog('error', 'Login form error', data);
+									debugPanel.addDebugLog('error', 'Login form error', { errorCode: data.errorCode });
 								}
+							} else {
+								await applyAction(result);
 							}
 						};
 					}}
@@ -242,7 +241,11 @@
 									signupSuccess =
 										data.message || 'Please check your email to confirm your account.';
 									signupError = null;
+								} else {
+									await applyAction(result);
 								}
+							} else {
+								await applyAction(result);
 							}
 						};
 					}}
