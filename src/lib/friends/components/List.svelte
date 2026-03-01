@@ -1,10 +1,8 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import {
-		formatStatusUpdatedAt,
-		formatStatusUpdatedAtTooltip
-	} from '$lib/status/formatting';
+	import { formatStatusUpdatedAtTooltip } from '$lib/status/formatting';
 	import { getDisplayName } from '$lib/ui/notifications';
+	import RelativeTime from '$lib/ui/RelativeTime.svelte';
 	import Avatar from 'svelte-boring-avatars';
 
 	interface Friend {
@@ -24,7 +22,6 @@
 
 	let { friends, deletingFriends, onDeleteFriend, onReorderFriends }: Props = $props();
 
-	// Modal helpers
 	function openStatusModal(friend: Friend) {
 		const modal = document.getElementById(`status_modal_${friend.id}`) as HTMLDialogElement;
 		modal?.showModal();
@@ -43,20 +40,15 @@
 		if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
 	}
 
-	// --- Drag and drop state ---
 	let draggedFriend: Friend | null = $state(null);
 	let draggedIndex = $state(-1);
-	// Insertion gap: 0 = before first item, friends.length = after last item
 	let dropGapIndex = $state(-1);
 
-	// Container ref for touch calculations and drag-leave detection
 	let containerRef: HTMLDivElement | null = $state(null);
 
-	// Touch state — plain vars, not reactive (not rendered)
 	let touchStartY = 0;
 	let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
-	// Cached once — touch support doesn't change mid-session
 	const isTouch = browser && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
 	function resetDragState() {
@@ -65,28 +57,24 @@
 		dropGapIndex = -1;
 	}
 
-	// Apply the pending reorder and notify the parent
 	function commitReorder() {
 		if (!draggedFriend || draggedIndex === -1 || dropGapIndex === -1) {
 			resetDragState();
 			return;
 		}
 
-		// Once the dragged item is removed from the array, indices above it shift down by one
-		const insertAt = dropGapIndex > draggedIndex ? dropGapIndex - 1 : dropGapIndex;
+		const adjustedInsertIndex = dropGapIndex > draggedIndex ? dropGapIndex - 1 : dropGapIndex;
 
-		if (insertAt !== draggedIndex) {
+		if (adjustedInsertIndex !== draggedIndex) {
 			const next = [...friends];
 			const [moved] = next.splice(draggedIndex, 1);
-			next.splice(insertAt, 0, moved);
+			next.splice(adjustedInsertIndex, 0, moved);
 			friends = next;
 			onReorderFriends?.(next);
 		}
 
 		resetDragState();
 	}
-
-	// --- Mouse drag handlers ---
 
 	function handleDragStart(event: DragEvent, friend: Friend, index: number) {
 		draggedFriend = friend;
@@ -100,16 +88,17 @@
 	function handleDragOver(event: DragEvent, index: number) {
 		event.preventDefault();
 		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-		// Map cursor Y position within the element to an insertion gap
 		const el = event.currentTarget as HTMLElement;
 		const rect = el.getBoundingClientRect();
 		dropGapIndex = event.clientY < rect.top + rect.height / 2 ? index : index + 1;
 	}
 
+	function cursorLeftContainer(event: DragEvent): boolean {
+		return !containerRef?.contains(event.relatedTarget as Node | null);
+	}
+
 	function handleDragLeave(event: DragEvent) {
-		// Only clear the indicator when the cursor truly leaves the list container,
-		// not when crossing between child elements
-		if (!containerRef?.contains(event.relatedTarget as Node | null)) {
+		if (cursorLeftContainer(event)) {
 			dropGapIndex = -1;
 		}
 	}
@@ -123,9 +112,6 @@
 		resetDragState();
 	}
 
-	// --- Touch drag action ---
-	// Long-press (400 ms) initiates drag; moving the finger before 400 ms cancels
-	// the timer so normal scrolling is unaffected.
 	function touchDragAction(
 		element: HTMLElement,
 		params: [Friend, number] | undefined
@@ -141,26 +127,25 @@
 				longPressTimer = null;
 				draggedFriend = currentFriend;
 				draggedIndex = currentIndex;
-				navigator.vibrate?.(40); // haptic feedback if supported
+				navigator.vibrate?.(40);
 			}, 400);
 		}
 
 		function onTouchMove(event: TouchEvent) {
 			const touch = event.touches[0];
-			// Cancel long-press if finger moves significantly before it fires
 			if (longPressTimer && Math.abs(touch.clientY - touchStartY) > 8) {
 				clearTimeout(longPressTimer);
 				longPressTimer = null;
 			}
 
-			if (draggedIndex === -1) return; // long-press hasn't fired yet — allow scroll
-			event.preventDefault(); // block scroll while dragging
+			if (draggedIndex === -1) return;
+			event.preventDefault();
 
 			if (!containerRef) return;
 
 			const currentY = touch.clientY;
 			const els = containerRef.querySelectorAll<HTMLElement>('.draggable-item');
-			let gap = els.length; // default: append to end
+			let gap = els.length;
 
 			for (let i = 0; i < els.length; i++) {
 				const rect = els[i].getBoundingClientRect();
@@ -181,7 +166,7 @@
 				clearTimeout(longPressTimer);
 				longPressTimer = null;
 			}
-			if (draggedIndex === -1) return; // was a tap, not a drag
+			if (draggedIndex === -1) return;
 			event.preventDefault();
 			commitReorder();
 		}
@@ -196,7 +181,6 @@
 
 		function attach() {
 			if (!attached) {
-				// touchstart can be passive — we only call preventDefault in touchmove/end
 				element.addEventListener('touchstart', onTouchStart, { passive: true });
 				element.addEventListener('touchmove', onTouchMove, { passive: false });
 				element.addEventListener('touchend', onTouchEnd, { passive: false });
@@ -235,8 +219,6 @@
 		};
 	}
 
-	// A gap is "neutral" (would not change order) if it sits directly before or
-	// after the item currently being dragged.
 	function isNeutralGap(gap: number, dragged: number) {
 		return gap === dragged || gap === dragged + 1;
 	}
@@ -269,14 +251,11 @@
 						ondragend={handleDragEnd}
 					>
 						<div class="flex w-full items-start gap-3">
-							<!-- Avatar and Delete Button Container -->
 							<div class="flex flex-shrink-0 flex-col items-center gap-2">
-								<!-- Avatar -->
 								<div class="avatar">
 									<Avatar name={friend.id} size={48} variant="beam" />
 								</div>
 
-								<!-- Delete Button - Mobile only -->
 								<button
 									class="btn btn-sm btn-error btn-outline opacity-100 transition-opacity duration-200 sm:hidden"
 									onclick={() => onDeleteFriend(friend.id)}
@@ -303,9 +282,7 @@
 								</button>
 							</div>
 
-							<!-- Friend Info -->
 							<div class="min-w-0 flex-1">
-								<!-- Name and Username -->
 								<div
 									class="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"
 								>
@@ -318,7 +295,6 @@
 										{/if}
 									</div>
 
-									<!-- Delete Button - Desktop only -->
 									<button
 										class="btn btn-sm btn-error btn-outline hidden flex-shrink-0 opacity-0 transition-opacity duration-200 sm:flex sm:opacity-100 sm:group-hover:opacity-100"
 										onclick={() => onDeleteFriend(friend.id)}
@@ -345,7 +321,6 @@
 									</button>
 								</div>
 
-								<!-- Status -->
 								<div class="mb-2">
 									{#if friend.status}
 										<div class="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -353,22 +328,20 @@
 												{friend.status}
 											</p>
 											{#if friend.status_updated_at}
-												<!-- Tooltip for larger screens -->
 												<div
 													class="tooltip tooltip-right md:tooltip-left hidden sm:block"
 													data-tip={formatStatusUpdatedAtTooltip(friend.status_updated_at)}
 												>
 													<span class="text-base-content/50 cursor-help text-xs whitespace-nowrap">
-														{formatStatusUpdatedAt(friend.status_updated_at)}
+														<RelativeTime timestamp={friend.status_updated_at} />
 													</span>
 												</div>
 
-												<!-- Clickable element for smaller screens -->
 												<button
 													class="text-base-content/50 hover:text-base-content/70 cursor-pointer text-left text-xs whitespace-nowrap transition-colors sm:hidden"
 													onclick={() => openStatusModal(friend)}
 												>
-													{formatStatusUpdatedAt(friend.status_updated_at)}
+													<RelativeTime timestamp={friend.status_updated_at} />
 												</button>
 											{/if}
 										</div>
@@ -381,7 +354,6 @@
 					</div>
 				{/each}
 
-				<!-- Gap indicator after the last item -->
 				{#if draggedIndex !== -1 && dropGapIndex === friends.length && !isNeutralGap(dropGapIndex, draggedIndex)}
 					<div class="mx-2 h-0.5 rounded-full bg-primary/70 transition-all duration-100"></div>
 				{/if}
@@ -394,7 +366,6 @@
 	</div>
 </div>
 
-<!-- Status Date Modals for Mobile -->
 {#each friends as friend (friend.id)}
 	{#if friend.status_updated_at}
 		<dialog

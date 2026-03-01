@@ -1,13 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-// Friendship verification utility
 export async function verifyFriendshipExists(
 	supabase: SupabaseClient,
 	userId: string,
 	friendId: string
 ): Promise<boolean> {
 	try {
-		// Check for the single friendship record (could be in either direction)
 		const { data: friendship, error } = await supabase
 			.from('friends')
 			.select('id')
@@ -28,7 +26,6 @@ export async function verifyFriendshipExists(
 	}
 }
 
-// Friend request utilities
 export async function checkExistingFriendRequest(
 	supabase: SupabaseClient,
 	requesterId: string,
@@ -73,7 +70,6 @@ export async function checkIncomingFriendRequest(
 			throw error;
 		}
 
-		// If a request exists, it's pending (requests are deleted when accepted/rejected)
 		return {
 			exists: !!incomingRequest,
 			isPending: !!incomingRequest

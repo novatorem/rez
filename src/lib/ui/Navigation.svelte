@@ -9,10 +9,8 @@
 		if (!supabase) return;
 
 		try {
-			// First, sign out from Supabase client-side
 			await supabase.auth.signOut();
 
-			// Then call the server-side logout endpoint for thorough cleanup
 			const response = await fetch('/auth/logout', {
 				method: 'POST',
 				headers: {
@@ -21,15 +19,12 @@
 			});
 
 			if (response.ok) {
-				// Server-side logout successful, redirect will be handled by the endpoint
 				window.location.href = '/auth';
 			} else {
-				// Fallback: force redirect even if server-side logout fails
 				window.location.href = '/auth';
 			}
 		} catch (err) {
 			console.error('Logout error:', err);
-			// Even if there's an error, redirect to auth page
 			window.location.href = '/auth';
 		}
 	};

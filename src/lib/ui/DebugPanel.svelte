@@ -8,7 +8,6 @@
 		data?: unknown;
 	}
 
-	// Props: show on errors or always show on iOS
 	let { hasError = $bindable(false), openOnMount = false } = $props();
 
 	let isOpen = $state(false);
@@ -16,7 +15,6 @@
 	let isIOS = $state(false);
 	let showPanel = $state(false);
 
-	// Expose function to open panel from outside
 	function openPanel() {
 		showPanel = true;
 		isOpen = true;
@@ -25,17 +23,13 @@
 	export { openPanel };
 
 	onMount(() => {
-		// Detect iOS
 		isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-		// Show debug panel button on iOS, if explicitly enabled, or if there's an error
-		// Check for debug mode in localStorage (only in browser)
 		if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
 			const debugMode = localStorage.getItem('debug-mode') === 'true';
 			showPanel = debugMode || isIOS || hasError;
 
 			if (showPanel) {
-				// Initialize with current page info
 				addLog('info', 'Debug panel initialized', {
 					userAgent: navigator.userAgent,
 					isIOS,
@@ -45,19 +39,16 @@
 				});
 			}
 
-			// Auto-open if requested (e.g., from button click)
 			if (openOnMount) {
 				isOpen = true;
 			}
 		} else if (hasError) {
-			// Show panel even if localStorage isn't available, if there's an error
 			showPanel = true;
 			if (openOnMount) {
 				isOpen = true;
 			}
 		}
 
-		// Intercept console methods to capture logs
 		const originalLog = console.log;
 		const originalWarn = console.warn;
 		const originalError = console.error;
@@ -77,7 +68,6 @@
 			addLog('error', args.join(' '), args.length > 1 ? args.slice(1) : undefined);
 		};
 
-		// Capture unhandled errors
 		window.addEventListener('error', (event) => {
 			addLog('error', `Unhandled error: ${event.message}`, {
 				filename: event.filename,
@@ -87,7 +77,6 @@
 			});
 		});
 
-		// Capture unhandled promise rejections
 		window.addEventListener('unhandledrejection', (event) => {
 			addLog('error', `Unhandled promise rejection: ${event.reason}`, {
 				reason: event.reason
@@ -111,7 +100,6 @@
 				data
 			}
 		];
-		// Keep only last 100 logs
 		if (logs.length > 100) {
 			logs = logs.slice(-100);
 		}
@@ -157,18 +145,14 @@
 		return false;
 	}
 
-	// Expose function to add logs from outside
-	// In Svelte 5, we use a method that can be called via component instance
 	function addDebugLog(level: LogEntry['level'], message: string, data?: unknown) {
 		addLog(level, message, data);
 	}
 
-	// Export the method for external access
 	export { addDebugLog };
 </script>
 
 {#if showPanel}
-	<!-- Floating debug button -->
 	<button
 		class="btn btn-circle btn-sm btn-warning fixed right-4 bottom-4 z-50 shadow-lg"
 		onclick={() => (isOpen = !isOpen)}
@@ -191,7 +175,6 @@
 		</svg>
 	</button>
 
-	<!-- Debug panel modal -->
 	{#if isOpen}
 		<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4">
 			<div class="card bg-base-100 max-h-[90vh] w-full max-w-2xl shadow-2xl">
@@ -203,7 +186,6 @@
 						</button>
 					</div>
 
-					<!-- Device Info -->
 					<div class="bg-base-200 mb-4 rounded-lg p-3">
 						<h3 class="mb-2 font-semibold">Device Information</h3>
 						<div class="space-y-1 text-sm">
@@ -218,7 +200,6 @@
 						</div>
 					</div>
 
-					<!-- Logs -->
 					<div class="mb-4">
 						<div class="mb-2 flex items-center justify-between">
 							<h3 class="font-semibold">Logs ({logs.length})</h3>
@@ -263,7 +244,6 @@
 						</div>
 					</div>
 
-					<!-- Actions -->
 					<div class="card-actions justify-end">
 						<button class="btn btn-sm btn-ghost" onclick={toggleDebugMode}>
 							{getDebugMode() ? 'Disable' : 'Enable'} Debug Mode
@@ -271,7 +251,6 @@
 						<button class="btn btn-sm btn-primary" onclick={() => (isOpen = false)}>Close</button>
 					</div>
 
-					<!-- Help text for Debug Mode -->
 					<div class="bg-base-200 mt-4 rounded-lg p-3 text-xs">
 						<p class="mb-1 font-semibold">About Debug Mode:</p>
 						<p class="text-base-content/70">

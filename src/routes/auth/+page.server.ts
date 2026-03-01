@@ -24,11 +24,8 @@ export const actions: Actions = {
 			});
 		}
 
-		// Check if email confirmation is required
-		// Supabase may return a user but no session if email confirmation is required
-		if (data.user && !data.session) {
-			// Email confirmation required — return a plain object so result.type === 'success'
-			// Using fail() here would set result.type === 'failure' and break the client handler
+		const emailConfirmationRequired = data.user && !data.session;
+		if (emailConfirmationRequired) {
 			return {
 				requiresConfirmation: true,
 				message: 'Please check your email to confirm your account before signing in.',
@@ -36,16 +33,14 @@ export const actions: Actions = {
 			};
 		}
 
-		// Signup successful with session
 		if (data.session) {
 			redirect(303, '/dashboard');
-		} else {
-			// Edge case: no error but also no session/user
-			return fail(500, {
-				error: 'Signup completed but no session was created. Please try logging in.',
-				email
-			});
 		}
+
+		return fail(500, {
+			error: 'Signup completed but no session was created. Please try logging in.',
+			email
+		});
 	},
 	login: async ({ request, locals: { supabase } }) => {
 		const formData = await request.formData();
@@ -62,5 +57,18 @@ export const actions: Actions = {
 		}
 
 		redirect(303, '/dashboard');
+	},
+	forgotPassword: async ({ request, locals: { supabase }, url }) => {
+		const formData = await request.formData();
+		const email = formData.get('email') as string;
+
+		await supabase.auth.resetPasswordForEmail(email, {
+			redirectTo: `${url.origin}/auth/confirm?next=/auth/reset-password`
+		});
+
+		return {
+			forgotPasswordSuccess: true,
+			message: "If an account exists with that email, you'll receive a password reset link."
+		};
 	}
 };

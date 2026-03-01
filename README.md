@@ -42,6 +42,7 @@ A real-time social status app where you can share what you're up to with your fr
 ## Overview
 
 Rez lets you:
+
 - Post a short status (up to 42 characters) so friends know what you're up to
 - See your friends' statuses and when they last updated them
 - Send, accept, and reject friend requests by username
@@ -55,12 +56,13 @@ Rez lets you:
 
 | Feature | Details |
 |---|---|
-| Authentication | Email/password with optional email confirmation |
+| Authentication | Email/password with email confirmation, password reset, email change |
 | Status updates | 42-character limit, with quick-status presets |
 | Friend requests | Send by username, accept/reject/cancel |
 | Real-time sync | Supabase Realtime (optional, gracefully degrades) |
 | Friend ordering | Drag-and-drop reorder, persisted in `localStorage` |
 | Themes | 35 built-in DaisyUI themes, cookie-persisted |
+| PWA | Installable on mobile and desktop via web app manifest |
 | Profile | Username (3–20 chars) + optional display name (up to 50 chars) |
 | Data export | Download all your data as JSON |
 | Account deletion | Password-confirmed, cascades all data including auth user |
@@ -80,8 +82,10 @@ Rez lets you:
 | Avatars | `svelte-boring-avatars` (deterministic from user ID) |
 | Theme switching | `theme-change` |
 | Build tool | Vite 7 |
+| Testing | [Vitest](https://vitest.dev/) |
 | Linting | ESLint 9 + `eslint-plugin-svelte` |
 | Formatting | Prettier + `prettier-plugin-svelte` + `prettier-plugin-tailwindcss` |
+| CI | GitHub Actions (check, lint, test) |
 
 ---
 
@@ -131,6 +135,8 @@ npm run check          # Type-check the project
 npm run check:watch    # Type-check in watch mode
 npm run lint           # Check formatting + ESLint
 npm run format         # Auto-format all files
+npm test               # Run Vitest tests
+npm run test:watch     # Run tests in watch mode
 ```
 
 ### Building for Production
@@ -200,7 +206,7 @@ In your Supabase dashboard under **Authentication → URL Configuration**:
 - **Site URL**: your production domain (e.g. `https://yourapp.com`)
 - **Redirect URLs**: add `https://yourapp.com/auth/confirm` (and `http://localhost:5173/auth/confirm` for local dev)
 
-Email confirmation is supported. When a new user signs up, they receive a confirmation email that redirects to `/auth/confirm`, which validates the OTP token and then redirects to `/dashboard`.
+The `/auth/confirm` endpoint handles multiple OTP types: signup confirmation, password recovery, and email change. For password resets, the recovery email links to `/auth/confirm?next=/auth/reset-password`, which verifies the token and redirects to the new-password form.
 
 ---
 
@@ -229,7 +235,7 @@ src/
 │   │       ├── Requests.svelte    # Send/accept/reject/cancel requests
 │   │       └── RequestsSkeleton.svelte
 │   ├── profile/
-│   │   ├── api.ts                 # findUserByUsername, checkUsernameAvailability
+│   │   ├── api.ts                 # checkUsernameAvailability
 │   │   └── validation.ts          # Username/display-name constants, validators, ERROR_MESSAGES
 │   ├── realtime/
 │   │   └── subscriptions.ts       # RealtimeSubscriptionManager class
@@ -247,6 +253,7 @@ src/
 │       ├── DebugPanel.svelte      # Floating debug log panel (dev/iOS/error)
 │       ├── Footer.svelte
 │       ├── Navigation.svelte      # Sticky nav with logout + settings link
+│       ├── RelativeTime.svelte    # Live-ticking relative timestamp component
 │       ├── ThemeSelect.svelte     # Theme picker component
 │       ├── Toast.svelte
 │       └── ToastContainer.svelte
@@ -258,11 +265,14 @@ src/
 │   ├── +page.svelte               # Landing / hero page
 │   ├── auth/
 │   │   ├── +layout.svelte
-│   │   ├── +page.server.ts        # login/signup form actions
-│   │   ├── +page.svelte           # Login/signup tab UI
-│   │   ├── confirm/+server.ts     # Email confirmation OTP handler
+│   │   ├── +page.server.ts        # login/signup/forgotPassword form actions
+│   │   ├── +page.svelte           # Login/signup tab UI with forgot password flow
+│   │   ├── confirm/+server.ts     # Email confirmation OTP handler (signup, recovery, email change)
 │   │   ├── error/+page.svelte     # Auth error page
-│   │   └── logout/+server.ts      # POST endpoint: server-side sign out + cookie clear
+│   │   ├── logout/+server.ts      # POST endpoint: server-side sign out + cookie clear
+│   │   └── reset-password/
+│   │       ├── +page.server.ts    # Load function (session check)
+│   │       └── +page.svelte       # New password form after recovery
 │   └── dashboard/
 │       ├── +layout.server.ts      # Auth guard - redirects unauthenticated users to /
 │       ├── +layout.svelte         # Dashboard layout with Navigation
@@ -270,7 +280,7 @@ src/
 │       ├── +page.svelte           # Main dashboard page
 │       └── settings/
 │           ├── +page.server.ts
-│           └── +page.svelte       # Settings page
+│           └── +page.svelte       # Settings page (profile, security, quick statuses, appearance, data)
 │
 └── sql/
     ├── functions/
@@ -292,7 +302,7 @@ src/
 2. **`+layout.server.ts`** passes `session` and raw cookies to the client.
 3. **`+layout.ts`** creates a Supabase browser client (or server client during SSR) and exposes `supabase`, `session`, and `user` to all child layouts/pages.
 4. **Dashboard page** receives only `session` from the server - all dashboard data (friends, statuses, requests) is loaded client-side via `DashboardDataLoader`. This keeps server load minimal and avoids serializing large data structures through the load chain.
-5. **Real-time** updates are handled by `RealtimeSubscriptionManager`, which subscribes to `friend_requests`, `friends`, and `profiles` table changes. On any relevant event, a debounced refresh (300ms) reloads dashboard data.
+5. **Real-time** updates are handled by `RealtimeSubscriptionManager`, which subscribes to `friend_requests`, `friends`, and `profiles` table changes. Updates are granular: profile/status changes are patched in-place from the realtime payload (zero DB calls), friend request changes trigger a targeted reload of just the request arrays, and friendship changes (rare, structural) trigger a full data reload.
 
 ### Database Schema
 
@@ -323,8 +333,8 @@ Quick statuses and friend order are stored in the browser's `localStorage` rathe
 **Svelte 5 runes throughout**
 All components use Svelte 5's rune-based reactivity (`$state`, `$derived`, `$effect`, `$props`, `$bindable`). This is the modern Svelte 5 API and provides cleaner component logic with explicit reactivity.
 
-**Debounced real-time refresh**
-Rather than updating specific state slices on each Realtime event, the app does a full data reload with a 300ms debounce. This is simpler to reason about and handles batched events correctly, at the cost of slightly more database reads.
+**Granular real-time updates**
+Realtime events are handled with three strategies: profile/status changes are patched in-place directly from the event payload (zero database calls), friend request changes trigger a debounced (300ms) reload of just the request arrays (two small queries), and friendship changes trigger a full reload since they are rare structural events that affect the profiles subscription scope.
 
 **`adapter-auto`**
 Using `@sveltejs/adapter-auto` means the project deploys to any supported platform without configuration changes. Swap in a specific adapter if you need fine-grained control.
@@ -338,7 +348,10 @@ Using `@sveltejs/adapter-auto` means the project deploys to any supported platfo
 - Auth uses Supabase's email/password flow via `@supabase/ssr`.
 - Session validation in `hooks.server.ts` calls both `getSession()` and `getUser()`. The `getUser()` call makes a network request to Supabase to cryptographically verify the JWT - this prevents accepting a locally-forged or replayed token. This pattern follows [Supabase's security recommendations](https://supabase.com/docs/guides/auth/server-side/nextjs#understanding-what-session-means).
 - `safeGetSession()` returns `{ session: null, user: null }` on any validation error rather than propagating the error upward.
-- The auth guard in `hooks.server.ts` redirects unauthenticated users away from `/dashboard/**` and redirects authenticated users away from `/auth`.
+- The auth guard has two layers: `hooks.server.ts` redirects unauthenticated users away from `/dashboard/**` to `/auth`, and `dashboard/+layout.server.ts` provides a secondary guard that redirects to `/`. Authenticated users hitting exactly `/auth` are redirected to `/dashboard` (sub-routes like `/auth/reset-password` are not affected).
+- **Password reset**: Users request a reset link from the login page via `resetPasswordForEmail()`. The email links through `/auth/confirm` (OTP verification) and redirects to `/auth/reset-password` where they set a new password via `updateUser()`. The root layout's `onAuthStateChange` listener also handles the `PASSWORD_RECOVERY` event as a safety redirect.
+- **Password change**: Authenticated users can change their password from Settings. The current password is verified via `signInWithPassword()` re-authentication before calling `updateUser()`.
+- **Email change**: Authenticated users can request an email change from Settings via `updateUser({ email })`. Supabase sends a confirmation link to the new address; the existing `/auth/confirm` handler processes the `email_change` OTP type.
 - Logout hits both the client-side `supabase.auth.signOut()` and a server-side `POST /auth/logout` endpoint that manually clears all Supabase auth cookies.
 
 ### Row Level Security
@@ -350,20 +363,23 @@ All four public tables have RLS enabled. The policies enforce:
 | `users` | All authenticated users can read | - | Own row only | Own row only |
 | `profiles` | All authenticated users can read | Own row only | Own row only | - |
 | `friends` | Only if `user_id` or `friend_id` matches | Only if `user_id` or `friend_id` matches | - | Only if `user_id` or `friend_id` matches |
-| `friend_requests` | Own rows (as requester or target) | Own as requester | Own as target | Own as requester or target |
+| `friend_requests` | Own rows (as requester or target) | Own as requester (rate-limited) | Own as target | Own as requester or target |
 
 The read-all policy on `users` and `profiles` is intentional - users need to search for others by username and view friends' statuses.
+
+**Rate limiting**: A restrictive RLS policy on `friend_requests` limits each user to 20 INSERT operations per hour. This is enforced at the database level via a `RESTRICTIVE` policy that is ANDed with the permissive INSERT policy, backed by a composite index on `(requester_id, created_at)`.
 
 ### Cookie Security
 
 Auth session cookies are set with:
+
 - **`path: '/'`** - applies app-wide
 - **`secure: true`** in production (HTTPS only) - prevents cookie theft over plain HTTP
 - **`sameSite: 'lax'`** - blocks cross-site POST requests from sending the cookie (CSRF mitigation)
 - **`domain`** set to the request hostname in production - prevents session sharing across subdomains
 - Localhost/127.0.0.1: `domain` is omitted to avoid browser quirks
 
-iOS Safari receives `sameSite: 'lax'` (same as all other clients), which avoids the more restrictive `none` behavior that can cause issues with in-app browsers.
+All clients (including iOS Safari) receive `sameSite: 'lax'`, which avoids the more restrictive `none` behavior that can cause issues with in-app browsers.
 
 ### Database Functions
 
@@ -418,10 +434,5 @@ These are purely client-side and device-specific - they are not synced to the da
 ## Potential Improvements
 
 **API**
+
 - Introduce an API. View only, so people can make their own dashboards (e.g. TRMNL).
-
-**User Experience**
-- No password reset or email change flow is exposed in the UI.
-
-**Code Quality**
-- No automated tests (unit or integration).
