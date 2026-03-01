@@ -1,8 +1,3 @@
-/**
- * Format datetime for display in a user-friendly format
- * @param updatedAt - ISO datetime string or null
- * @returns Formatted string like "2h ago" or "Dec 15"
- */
 export const formatStatusUpdatedAt = (updatedAt: string | null): string => {
 	if (!updatedAt) return '';
 
@@ -19,7 +14,6 @@ export const formatStatusUpdatedAt = (updatedAt: string | null): string => {
 	const diffInDays = Math.floor(diffInHours / 24);
 	if (diffInDays < 7) return `${diffInDays}d ago`;
 
-	// For older dates, show the actual date
 	return date.toLocaleDateString('en-US', {
 		month: 'short',
 		day: 'numeric',
@@ -27,11 +21,6 @@ export const formatStatusUpdatedAt = (updatedAt: string | null): string => {
 	});
 };
 
-/**
- * Format datetime for tooltip display with full date and time
- * @param updatedAt - ISO datetime string or null
- * @returns Formatted string like "Monday, December 15, 2024 at 2:30:45 PM EST"
- */
 export const formatStatusUpdatedAtTooltip = (updatedAt: string | null): string => {
 	if (!updatedAt) return '';
 

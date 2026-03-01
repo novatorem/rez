@@ -28,14 +28,26 @@
 
 	let { friendRequests, sentFriendRequests, supabase, user, onDataRefresh }: Props = $props();
 
-	// Loading states
 	let isSendingFriendRequest = $state(false);
 	let processingRequests = $state(new Set<string>());
 	let cancellingRequests = $state(new Set<string>());
-	// Brief cooldown after each send attempt to prevent accidental rapid-fire submissions.
 	let canSendRequest = $state(true);
 
 	const RATE_LIMIT_PER_HOUR = 20;
+	const POSTGRES_RLS_VIOLATION = '42501';
+
+	async function hasExceededHourlyRequestLimit(): Promise<boolean> {
+		if (!user || !supabase) return false;
+
+		const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+		const { count, error } = await supabase
+			.from('friend_requests')
+			.select('id', { count: 'exact', head: true })
+			.eq('requester_id', user.id)
+			.gte('created_at', oneHourAgo);
+
+		return !error && count !== null && count >= RATE_LIMIT_PER_HOUR;
+	}
 
 	const handleFriendRequest = async (evt: SubmitEvent) => {
 		evt.preventDefault();
@@ -51,24 +63,13 @@
 
 		isSendingFriendRequest = true;
 		try {
-			// Rate limit pre-check: count requests sent in the last hour.
-			// The server enforces the same limit via a RESTRICTIVE RLS policy, but
-			// checking here first lets us show a helpful message instead of a generic error.
-			const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-			const { count, error: countError } = await supabase
-				.from('friend_requests')
-				.select('id', { count: 'exact', head: true })
-				.eq('requester_id', user.id)
-				.gte('created_at', oneHourAgo);
-
-			if (!countError && count !== null && count >= RATE_LIMIT_PER_HOUR) {
+			if (await hasExceededHourlyRequestLimit()) {
 				NotificationManager.showError(
 					`You've sent ${RATE_LIMIT_PER_HOUR} friend requests in the last hour. Please wait before sending more.`
 				);
 				return;
 			}
 
-			// First, find the target user by username
 			const { data: targetUser, error: userError } = await supabase
 				.from('users')
 				.select('id, username')
@@ -90,7 +91,6 @@
 				return;
 			}
 
-			// Check if they're already friends (single record check with OR)
 			const { data: existingFriendship, error: friendshipError } = await supabase
 				.from('friends')
 				.select('id')
@@ -109,14 +109,12 @@
 				return;
 			}
 
-			// Check for existing outgoing friend request
 			const existingOutgoing = await checkExistingFriendRequest(supabase, user.id, targetUser.id);
 			if (existingOutgoing.exists) {
 				NotificationManager.showError('You have already sent a friend request to this user');
 				return;
 			}
 
-			// Check for existing incoming friend request
 			const existingIncoming = await checkIncomingFriendRequest(supabase, targetUser.id, user.id);
 			if (existingIncoming.exists && existingIncoming.isPending) {
 				NotificationManager.showError(
@@ -125,15 +123,13 @@
 				return;
 			}
 
-			// Create the friend request
 			const { error: insertError } = await supabase.from('friend_requests').insert({
 				requester_id: user.id,
 				target_id: targetUser.id
 			});
 
 			if (insertError) {
-				// 42501 = RLS policy violation — the server-side rate limit was hit.
-				if (insertError.code === '42501') {
+				if (insertError.code === POSTGRES_RLS_VIOLATION) {
 					NotificationManager.showError(
 						`You've reached the limit of ${RATE_LIMIT_PER_HOUR} friend requests per hour. Please try again later.`
 					);
@@ -143,7 +139,6 @@
 				return;
 			}
 
-			// Clear the form
 			(evt.target as HTMLFormElement).reset();
 
 			await onDataRefresh();
@@ -152,7 +147,6 @@
 			handleDatabaseError(error, 'send friend request');
 		} finally {
 			isSendingFriendRequest = false;
-			// Apply a short cooldown regardless of outcome to prevent rapid-fire clicks.
 			canSendRequest = false;
 			setTimeout(() => {
 				canSendRequest = true;
@@ -163,11 +157,9 @@
 	const handleFriendRequestAction = async (requestId: string, action: 'accept' | 'reject') => {
 		if (!user || !supabase) return;
 
-		// Add to processing set
 		processingRequests = new Set([...processingRequests, requestId]);
 
 		try {
-			// Get the friend request details
 			const { data: friendRequest, error: requestError } = await supabase
 				.from('friend_requests')
 				.select('requester_id, target_id')
@@ -187,7 +179,6 @@
 
 			if (action === 'accept') {
 
-				// First check if friendship already exists (prevent duplicates)
 				const { data: existingFriendship } = await supabase
 					.from('friends')
 					.select('id')
@@ -206,7 +197,6 @@
 					.insert({ user_id: user.id, friend_id: friendRequest.requester_id });
 
 				if (insertError) {
-					// If it's a duplicate key error, it means the friendship already exists
 					if (insertError.code === '23505') {
 						NotificationManager.showError('You are already friends with this user');
 					} else {
@@ -216,7 +206,6 @@
 				}
 
 
-				// Delete the friend request since it's been accepted
 				const { error: deleteError } = await supabase
 					.from('friend_requests')
 					.delete()
@@ -229,7 +218,6 @@
 
 				NotificationManager.showSuccess('Friend request accepted');
 			} else {
-				// Delete the friend request since it's been rejected
 				const { error: deleteError } = await supabase
 					.from('friend_requests')
 					.delete()
@@ -254,11 +242,9 @@
 	const handleCancelFriendRequest = async (requestId: string) => {
 		if (!user || !supabase) return;
 
-		// Add to cancelling set
 		cancellingRequests = new Set([...cancellingRequests, requestId]);
 
 		try {
-			// Delete the friend request
 			const { error } = await supabase
 				.from('friend_requests')
 				.delete()
@@ -328,7 +314,6 @@
 			</div>
 		</form>
 
-		<!-- Pending Friend Requests -->
 		{#if friendRequests && friendRequests.length > 0}
 			<h3 class="mt-4 font-bold">Friend Requests</h3>
 			<ul class="list">
@@ -403,7 +388,6 @@
 			</ul>
 		{/if}
 
-		<!-- Sent Friend Requests -->
 		{#if sentFriendRequests && sentFriendRequests.length > 0}
 			<h3 class="mt-4 font-bold">Sent Friend Requests</h3>
 			<ul class="list">

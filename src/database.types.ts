@@ -51,31 +51,28 @@ export interface Database {
 				};
 				Relationships: [];
 			};
-			friend_requests: {
-				Row: {
-					id: string;
-					requester_id: string;
-					target_id: string;
-					status: string;
-					created_at: string;
-					updated_at: string;
-				};
-				Insert: {
-					id?: string;
-					requester_id: string;
-					target_id: string;
-					status?: string;
-					created_at?: string;
-					updated_at?: string;
-				};
-				Update: {
-					id?: string;
-					requester_id?: string;
-					target_id?: string;
-					status?: string;
-					created_at?: string;
-					updated_at?: string;
-				};
+		friend_requests: {
+			Row: {
+				id: string;
+				requester_id: string;
+				target_id: string;
+				created_at: string;
+				updated_at: string;
+			};
+			Insert: {
+				id?: string;
+				requester_id: string;
+				target_id: string;
+				created_at?: string;
+				updated_at?: string;
+			};
+			Update: {
+				id?: string;
+				requester_id?: string;
+				target_id?: string;
+				created_at?: string;
+				updated_at?: string;
+			};
 				Relationships: [
 					{
 						foreignKeyName: 'friend_requests_requester_id_fkey';
@@ -130,7 +127,14 @@ export interface Database {
 			[_ in never]: never;
 		};
 		Functions: {
-			[_ in never]: never;
+			get_dashboard_data: {
+				Args: Record<string, never>;
+				Returns: Json;
+			};
+			delete_user_account: {
+				Args: Record<string, never>;
+				Returns: undefined;
+			};
 		};
 		Enums: {
 			[_ in never]: never;

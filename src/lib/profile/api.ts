@@ -17,7 +17,7 @@ export async function checkUsernameAvailability(
 			throw error;
 		}
 
-		return !existingUser; // Available if no existing user found
+		return !existingUser;
 	} catch (error) {
 		console.error('Error checking username availability:', error);
 		throw error;

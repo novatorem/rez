@@ -1,10 +1,11 @@
+export const MIN_USERNAME_LENGTH = 3;
 export const MAX_USERNAME_LENGTH = 20;
 export const MAX_DISPLAY_NAME_LENGTH = 50;
 export const USERNAME_PATTERN = /^[a-zA-Z][a-zA-Z0-9._-]*$/;
 
-// Error messages
 export const ERROR_MESSAGES = {
 	USERNAME_EMPTY: 'Username cannot be empty',
+	USERNAME_TOO_SHORT: `Username must be at least ${MIN_USERNAME_LENGTH} characters`,
 	USERNAME_TOO_LONG: `Username must be ${MAX_USERNAME_LENGTH} characters or less`,
 	USERNAME_INVALID:
 		'Username must start with a letter and can only contain letters, numbers, dots, dashes, and underscores',
@@ -16,6 +17,9 @@ export const ERROR_MESSAGES = {
 export function validateUsername(username: string): string | null {
 	if (username.length === 0) {
 		return ERROR_MESSAGES.USERNAME_EMPTY;
+	}
+	if (username.length < MIN_USERNAME_LENGTH) {
+		return ERROR_MESSAGES.USERNAME_TOO_SHORT;
 	}
 	if (username.length > MAX_USERNAME_LENGTH) {
 		return ERROR_MESSAGES.USERNAME_TOO_LONG;
@@ -37,11 +41,9 @@ export function validateDisplayName(displayName: string): string | null {
 }
 
 export function sanitizeUsername(username: string): string {
-	// Trim whitespace from username
 	return username.trim();
 }
 
 export function sanitizeDisplayName(displayName: string): string {
-	// Trim whitespace from display name
 	return displayName.trim();
 }

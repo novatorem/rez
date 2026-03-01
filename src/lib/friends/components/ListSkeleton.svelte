@@ -1,8 +1,6 @@
 <script lang="ts">
-	// Skeleton component for friends list loading state
 </script>
 
-<!-- Friends List Skeleton -->
 <div class="mb-4">
 	<div class="card bg-base-200">
 		<div class="card-body">
@@ -11,10 +9,8 @@
 				{#each Array.from({ length: 3 }, (_, i) => i) as i (i)}
 					<div class="bg-base-300 rounded-box p-4">
 						<div class="flex w-full items-start gap-3">
-							<!-- Avatar skeleton -->
 							<div class="skeleton h-12 w-12 flex-shrink-0 rounded-full"></div>
 
-							<!-- Content skeleton -->
 							<div class="min-w-0 flex-1">
 								<div
 									class="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"

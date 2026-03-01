@@ -22,7 +22,6 @@
 
 	let isLoading = $state(false);
 
-	// Username functionality
 	let dashboardData = $state<DashboardData | null>(null);
 	let isLoadingData = $state(true);
 	let currentUsername = $derived(dashboardData?.currentUsername || '');
@@ -34,23 +33,28 @@
 	let usernameCharacterCount = $derived(usernameText.length);
 	let displayNameCharacterCount = $derived(displayNameText.length);
 
-	// Delete account modal functionality
+	let currentPassword = $state('');
+	let newPassword = $state('');
+	let confirmNewPassword = $state('');
+	let isChangingPassword = $state(false);
+
+	let newEmail = $state('');
+	let isChangingEmail = $state(false);
+	let emailChangeSuccess = $state<string | null>(null);
+
 	let showDeleteModal = $state(false);
 	let deletePassword = $state('');
 	let isDeletingAccount = $state(false);
 
-	// Quick status management
 	let quickStatusInputs = $state<string[]>([]);
 	let isUpdatingQuickStatuses = $state(false);
 
-	// Load dashboard data on mount
 	onMount(() => {
 		if (session?.user && supabase) {
 			loadDashboardData();
 		}
 	});
 
-	// Load dashboard data
 	const loadDashboardData = async () => {
 		if (!session?.user || !supabase) return;
 
@@ -58,10 +62,8 @@
 		try {
 			const dataLoader = new DashboardDataLoader(supabase, session.user.id);
 			dashboardData = await dataLoader.loadAllData();
-			// Initialize quick status inputs from localStorage
 			const localQuickStatuses = getQuickStatuses();
 			quickStatusInputs = localQuickStatuses.map((qs) => qs.status_text);
-			// Fill empty slots up to 5
 			while (quickStatusInputs.length < 5) {
 				quickStatusInputs.push('');
 			}
@@ -71,6 +73,19 @@
 			isLoadingData = false;
 		}
 	};
+
+	function downloadJsonFile(data: unknown, filename: string) {
+		const jsonString = JSON.stringify(data, null, 2);
+		const blob = new Blob([jsonString], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = filename;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+	}
 
 	const exportData = async () => {
 		if (!session?.user || !supabase) {
@@ -83,27 +98,9 @@
 			toastStore.info('Preparing your data export...');
 
 			const dataLoader = new DashboardDataLoader(supabase, session.user.id);
-			const exportData = await dataLoader.exportUserData();
+			const exportedData = await dataLoader.exportUserData();
 
-			// Create a formatted JSON string
-			const jsonString = JSON.stringify(exportData, null, 2);
-
-			// Create a blob and download it
-			const blob = new Blob([jsonString], { type: 'application/json' });
-			const url = URL.createObjectURL(blob);
-
-			// Create a temporary download link
-			const link = document.createElement('a');
-			link.href = url;
-			link.download = `rez-data-export-${new Date().toISOString().split('T')[0]}.json`;
-
-			// Trigger the download
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
-
-			// Clean up the URL object
-			URL.revokeObjectURL(url);
+			downloadJsonFile(exportedData, `rez-data-export-${new Date().toISOString().split('T')[0]}.json`);
 
 			toastStore.success('Data exported successfully!');
 		} catch (error) {
@@ -131,7 +128,6 @@
 
 		isDeletingAccount = true;
 		try {
-			// Re-authenticate user with password
 			const { error: authError } = await supabase.auth.signInWithPassword({
 				email: session.user.email!,
 				password: deletePassword
@@ -142,7 +138,6 @@
 				return;
 			}
 
-			// Use the comprehensive delete function from DashboardDataLoader
 			const dataLoader = new DashboardDataLoader(supabase, session.user.id);
 			await dataLoader.deleteUserAccount();
 
@@ -150,7 +145,6 @@
 				'Account and all data deleted successfully. You will be redirected to the login page.'
 			);
 
-			// Sign out and redirect
 			await supabase.auth.signOut();
 			window.location.href = '/auth';
 		} catch (error) {
@@ -174,12 +168,10 @@
 
 		isUpdatingQuickStatuses = true;
 		try {
-			// Filter out empty inputs
 			const validStatuses = quickStatusInputs
 				.map((text, index) => ({ text: text.trim(), order: index }))
 				.filter((qs) => qs.text.length > 0);
 
-			// Validate all statuses
 			for (const qs of validStatuses) {
 				const { validateStatus } = await import('$lib/status/validation');
 				const validationError = validateStatus(qs.text);
@@ -189,7 +181,6 @@
 				}
 			}
 
-			// Save to localStorage instead of database
 			saveQuickStatuses(quickStatusInputs);
 
 			await loadDashboardData();
@@ -198,6 +189,89 @@
 			handleDatabaseError(error, 'update quick statuses');
 		} finally {
 			isUpdatingQuickStatuses = false;
+		}
+	};
+
+	const MIN_PASSWORD_LENGTH = 6;
+
+	const handleChangePassword = async (evt: Event) => {
+		evt.preventDefault();
+		if (!session?.user || !supabase) return;
+
+		if (newPassword.length < MIN_PASSWORD_LENGTH) {
+			toastStore.error(`New password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+			return;
+		}
+
+		if (newPassword !== confirmNewPassword) {
+			toastStore.error('New passwords do not match.');
+			return;
+		}
+
+		isChangingPassword = true;
+		try {
+			const { error: authError } = await supabase.auth.signInWithPassword({
+				email: session.user.email!,
+				password: currentPassword
+			});
+
+			if (authError) {
+				toastStore.error('Current password is incorrect.');
+				return;
+			}
+
+			const { error: updateError } = await supabase.auth.updateUser({
+				password: newPassword
+			});
+
+			if (updateError) {
+				toastStore.error(updateError.message);
+				return;
+			}
+
+			toastStore.success('Password updated successfully.');
+			currentPassword = '';
+			newPassword = '';
+			confirmNewPassword = '';
+		} catch (error) {
+			handleDatabaseError(error, 'change password');
+		} finally {
+			isChangingPassword = false;
+		}
+	};
+
+	const handleChangeEmail = async (evt: Event) => {
+		evt.preventDefault();
+		if (!session?.user || !supabase) return;
+
+		const trimmedEmail = newEmail.trim();
+		if (!trimmedEmail) {
+			toastStore.error('Please enter a new email address.');
+			return;
+		}
+
+		if (trimmedEmail === session.user.email) {
+			toastStore.error('New email is the same as your current email.');
+			return;
+		}
+
+		isChangingEmail = true;
+		emailChangeSuccess = null;
+		try {
+			const { error } = await supabase.auth.updateUser({ email: trimmedEmail });
+
+			if (error) {
+				toastStore.error(error.message);
+				return;
+			}
+
+			emailChangeSuccess =
+				'A confirmation link has been sent to your new email address. Your email will update after you confirm.';
+			newEmail = '';
+		} catch (error) {
+			handleDatabaseError(error, 'change email');
+		} finally {
+			isChangingEmail = false;
 		}
 	};
 
@@ -214,14 +288,12 @@
 
 		isUpdatingUsername = true;
 		try {
-			// Check if username is available
 			const isAvailable = await checkUsernameAvailability(supabase, sanitizedUsername, session.user.id);
 			if (!isAvailable) {
 				toastStore.error(ERROR_MESSAGES.USERNAME_TAKEN);
 				return;
 			}
 
-			// Update username
 			const { error } = await supabase
 				.from('users')
 				.update({ username: sanitizedUsername })
@@ -254,7 +326,6 @@
 
 		isUpdatingDisplayName = true;
 		try {
-			// Update display name (can be null if empty)
 			const { error } = await supabase
 				.from('users')
 				.update({ display_name: sanitizedDisplayName || null })
@@ -276,7 +347,6 @@
 </script>
 
 <div class="container mx-auto max-w-4xl px-4 py-8 sm:px-6">
-	<!-- Header Section -->
 	<header class="mb-12">
 		<h1 class="text-base-content mb-3 text-4xl font-bold">Settings</h1>
 		<p class="text-base-content/70 text-lg">
@@ -284,9 +354,7 @@
 		</p>
 	</header>
 
-	<!-- Main Settings Container -->
 	<main class="space-y-12">
-		<!-- Profile Section -->
 		<section class="card bg-base-100 shadow-xl" aria-labelledby="profile-heading">
 			<div class="card-body p-6 sm:p-8">
 				<h2 id="profile-heading" class="card-title mb-6 flex items-center gap-3 text-2xl">
@@ -301,25 +369,10 @@
 					Profile Information
 				</h2>
 				<div class="space-y-8">
-					<!-- Account Information Subsection -->
 					<div class="space-y-6">
 						<h3 class="text-base-content/80 border-base-300 border-b pb-2 text-lg font-semibold">
 							Account Information
 						</h3>
-
-						<div class="form-control min-w-0">
-							<label class="label" for="email-input">
-								<span class="label-text font-medium">Email Address</span>
-							</label>
-							<input
-								id="email-input"
-								type="email"
-								value={session?.user?.email || ''}
-								class="input input-bordered w-full"
-								disabled
-								aria-describedby="email-help"
-							/>
-						</div>
 
 						<div class="form-control min-w-0">
 							<label class="label" for="user-id-input">
@@ -336,7 +389,6 @@
 						</div>
 					</div>
 
-					<!-- Username Subsection -->
 					<div class="space-y-6">
 						<h3 class="text-base-content/80 border-base-300 border-b pb-2 text-lg font-semibold">
 							Username
@@ -471,7 +523,6 @@
 						{/if}
 					</div>
 
-					<!-- Display Name Subsection -->
 					<div class="space-y-6">
 						<h3 class="text-base-content/80 border-base-300 border-b pb-2 text-lg font-semibold">
 							Display Name
@@ -606,7 +657,164 @@
 			</div>
 		</section>
 
-		<!-- Quick Status Section -->
+		<section class="card bg-base-100 shadow-xl" aria-labelledby="security-heading">
+			<div class="card-body p-6 sm:p-8">
+				<h2 id="security-heading" class="card-title mb-6 flex items-center gap-3 text-2xl">
+					<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+						/>
+					</svg>
+					Security
+				</h2>
+				<div class="space-y-8">
+					<div class="space-y-6">
+						<h3 class="text-base-content/80 border-base-300 border-b pb-2 text-lg font-semibold">
+							Email Address
+						</h3>
+
+						<div class="bg-base-200 border-base-300 rounded-lg border p-4">
+							<p class="text-base-content text-lg font-medium">
+								Current email: <span class="text-primary">{session?.user?.email || ''}</span>
+							</p>
+						</div>
+
+						{#if emailChangeSuccess}
+							<div class="alert alert-success" role="alert">
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-6 w-6 shrink-0 stroke-current"
+									fill="none"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+									/>
+								</svg>
+								<span>{emailChangeSuccess}</span>
+								<button
+									class="btn btn-sm btn-ghost"
+									onclick={() => (emailChangeSuccess = null)}
+									type="button">✕</button
+								>
+							</div>
+						{/if}
+
+						<form onsubmit={handleChangeEmail} class="space-y-4">
+							<div class="form-control min-w-0">
+								<label class="label" for="new-email-input">
+									<span class="label-text font-medium">New email address</span>
+								</label>
+								<div class="join w-full min-w-0">
+									<input
+										id="new-email-input"
+										type="email"
+										bind:value={newEmail}
+										required
+										placeholder="newemail@example.com"
+										class="input input-bordered join-item w-full"
+										aria-describedby="change-email-help"
+									/>
+									<button
+										class="btn btn-primary join-item"
+										disabled={isChangingEmail}
+										type="submit"
+									>
+										{#if isChangingEmail}
+											<span class="loading loading-spinner loading-xs"></span>
+										{:else}
+											Update
+										{/if}
+									</button>
+								</div>
+								<div class="label w-full max-w-full">
+									<span
+										id="change-email-help"
+										class="label-text-alt text-base-content/60 break-anywhere block w-full max-w-full text-sm leading-relaxed break-words hyphens-auto whitespace-normal sm:text-base"
+									>
+										A confirmation link will be sent to the new address. Your email won't change
+										until you confirm.
+									</span>
+								</div>
+							</div>
+						</form>
+					</div>
+
+					<div class="space-y-6">
+						<h3 class="text-base-content/80 border-base-300 border-b pb-2 text-lg font-semibold">
+							Change Password
+						</h3>
+
+						<form onsubmit={handleChangePassword} class="space-y-4">
+							<div class="form-control min-w-0">
+								<label class="label" for="current-password-input">
+									<span class="label-text font-medium">Current password</span>
+								</label>
+								<input
+									id="current-password-input"
+									type="password"
+									autocomplete="current-password"
+									bind:value={currentPassword}
+									required
+									placeholder="Enter current password"
+									class="input input-bordered w-full"
+								/>
+							</div>
+
+							<div class="form-control min-w-0">
+								<label class="label" for="new-password-input">
+									<span class="label-text font-medium">New password</span>
+								</label>
+								<input
+									id="new-password-input"
+									type="password"
+									autocomplete="new-password"
+									bind:value={newPassword}
+									required
+									minlength={MIN_PASSWORD_LENGTH}
+									placeholder="Enter new password"
+									class="input input-bordered w-full"
+								/>
+							</div>
+
+							<div class="form-control min-w-0">
+								<label class="label" for="confirm-new-password-input">
+									<span class="label-text font-medium">Confirm new password</span>
+								</label>
+								<input
+									id="confirm-new-password-input"
+									type="password"
+									autocomplete="new-password"
+									bind:value={confirmNewPassword}
+									required
+									minlength={MIN_PASSWORD_LENGTH}
+									placeholder="Confirm new password"
+									class="input input-bordered w-full"
+								/>
+							</div>
+
+							<div class="form-control mt-2">
+								<button class="btn btn-primary" disabled={isChangingPassword} type="submit">
+									{#if isChangingPassword}
+										<span class="loading loading-spinner loading-sm"></span>
+										Updating...
+									{:else}
+										Change Password
+									{/if}
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</section>
+
 		<section class="card bg-base-100 shadow-xl" aria-labelledby="quick-status-heading">
 			<div class="card-body p-6 sm:p-8">
 				<h2 id="quick-status-heading" class="card-title mb-6 flex items-center gap-3 text-2xl">
@@ -736,7 +944,6 @@
 			</div>
 		</section>
 
-		<!-- Appearance Section -->
 		<section class="card bg-base-100 shadow-xl" aria-labelledby="appearance-heading">
 			<div class="card-body p-6 sm:p-8">
 				<h2 id="appearance-heading" class="card-title mb-6 flex items-center gap-3 text-2xl">
@@ -754,7 +961,6 @@
 			</div>
 		</section>
 
-		<!-- Data Management Section -->
 		<section class="card bg-base-100 shadow-xl" aria-labelledby="data-management-heading">
 			<div class="card-body p-6 sm:p-8">
 				<h2 id="data-management-heading" class="card-title mb-6 flex items-center gap-3 text-2xl">
@@ -810,7 +1016,6 @@
 			</div>
 		</section>
 
-		<!-- Danger Zone Section -->
 		<section class="card bg-base-100 border-error shadow-xl" aria-labelledby="danger-zone-heading">
 			<div class="card-body p-6 sm:p-8">
 				<h2
@@ -865,7 +1070,6 @@
 	</main>
 </div>
 
-<!-- Delete Account Confirmation Modal -->
 {#if showDeleteModal}
 	<div
 		class="modal modal-open"

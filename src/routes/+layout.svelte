@@ -10,10 +10,8 @@
 	let { data, children } = $props();
 	let { session, supabase } = $derived(data);
 
-	// Centralized title management based on current route
 	let pageTitle = $state('Rez');
 
-	// Update title based on current route
 	$effect(() => {
 		const pathname = page.url.pathname;
 
@@ -37,20 +35,22 @@
 
 		const { data: authListener } = supabase.auth.onAuthStateChange(
 			(event: AuthChangeEvent, newSession: Session | null) => {
-				// Following official docs pattern with our security enhancements
 				if (newSession?.expires_at !== session?.expires_at) {
 					invalidate('supabase:auth');
 				}
 
-				// Handle sign out - ensure complete cleanup
-				if (event === 'SIGNED_OUT') {
-					// Clear any remaining client-side auth state
-					invalidate('supabase:auth');
-					// If we're not already on the auth page, redirect
-					if (!window.location.pathname.startsWith('/auth')) {
-						window.location.href = '/auth';
-					}
+			if (event === 'PASSWORD_RECOVERY') {
+				if (!window.location.pathname.startsWith('/auth/reset-password')) {
+					window.location.href = '/auth/reset-password';
 				}
+			}
+
+			if (event === 'SIGNED_OUT') {
+				invalidate('supabase:auth');
+				if (!window.location.pathname.startsWith('/auth')) {
+					window.location.href = '/auth';
+				}
+			}
 			}
 		);
 
@@ -63,7 +63,7 @@
 </svelte:head>
 
 <div class="bg-base-100 flex min-h-screen flex-col">
-	<main class="flex-grow">
+	<main class="flex grow flex-col">
 		{@render children()}
 	</main>
 
