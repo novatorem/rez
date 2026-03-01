@@ -5,14 +5,12 @@
 
 	let { toast }: { toast: Toast } = $props();
 
-	// Map toast types to DaisyUI alert classes
 	const alertClasses = {
 		success: 'alert-success',
 		error: 'alert-error',
 		info: 'alert-info'
 	};
 
-	// Get the appropriate icon for each type
 	const getIcon = (type: Toast['type']) => {
 		switch (type) {
 			case 'success':

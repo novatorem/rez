@@ -2,7 +2,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../database.types';
 import { getQuickStatuses, type QuickStatus } from '../status/quick.js';
 
-// Types for the dashboard data
 export interface FriendRequest {
 	id: string;
 	requester_id: string;
@@ -10,7 +9,6 @@ export interface FriendRequest {
 	requester_display_name: string | null;
 }
 
-// Types for joined queries
 interface FriendRequestWithUser {
 	id: string;
 	requester_id: string;
@@ -80,11 +78,9 @@ export interface UserExportData {
 	};
 }
 
-// Utility function to remove duplicates by ID
 const deduplicateById = <T extends { id: string }>(items: T[]): T[] =>
 	items.filter((item, index, self) => index === self.findIndex((other) => other.id === item.id));
 
-// Shape of the JSON object returned by the get_dashboard_data() RPC function.
 interface DashboardRpcResult {
 	username: string;
 	display_name: string | null;
@@ -118,23 +114,6 @@ export class DashboardDataLoader {
 	constructor(supabase: SupabaseClient<Database>, userId: string) {
 		this.supabase = supabase;
 		this.userId = userId;
-	}
-
-	async loadUserProfile(): Promise<{
-		username: string;
-		display_name: string | null;
-		status: string;
-	}> {
-		const [userData, profileData] = await Promise.all([
-			this.supabase.from('users').select('username, display_name').eq('id', this.userId).single(),
-			this.supabase.from('profiles').select('status').eq('id', this.userId).single()
-		]);
-
-		return {
-			username: userData.data?.username || '',
-			display_name: userData.data?.display_name || null,
-			status: profileData.data?.status || ''
-		};
 	}
 
 	async loadFriendRequests(): Promise<FriendRequest[]> {
@@ -179,8 +158,6 @@ export class DashboardDataLoader {
 	}
 
 	async loadFriends(): Promise<Friend[]> {
-		// Get all friendships where current user is either user_id or friend_id
-		// Since we now store only one record per friendship, we need to check both columns
 		const { data: friendships } = await this.supabase
 			.from('friends')
 			.select('id, user_id, friend_id')
@@ -190,31 +167,26 @@ export class DashboardDataLoader {
 			return [];
 		}
 
-		// Get friend IDs (the other person in each friendship)
 		const friendIds = friendships.map((friendship) => {
 			return friendship.user_id === this.userId ? friendship.friend_id : friendship.user_id;
 		});
 
-		// Fetch user details for all friends
 		const { data: friendUsers } = await this.supabase
 			.from('users')
 			.select('id, username, display_name')
 			.in('id', friendIds);
 
-		// Get statuses for all friends in parallel
 		const { data: friendStatuses } =
 			friendIds.length > 0
 				? await this.supabase.from('profiles').select('id, status, updated_at').in('id', friendIds)
 				: { data: [] };
 
-		// Create maps for friend data
 		const userMap = new Map(friendUsers?.map((user) => [user.id, user]) || []);
 		const statusMap = new Map(friendStatuses?.map((profile) => [profile.id, profile.status]) || []);
 		const statusUpdatedAtMap = new Map(
 			friendStatuses?.map((profile) => [profile.id, profile.updated_at]) || []
 		);
 
-		// Process and format friends
 		const formattedFriends = friendIds.map((friendId) => {
 			const user = userMap.get(friendId);
 			return {
@@ -230,14 +202,11 @@ export class DashboardDataLoader {
 	}
 
 	async loadQuickStatuses(): Promise<QuickStatus[]> {
-		// Load quick statuses from localStorage instead of database
 		return getQuickStatuses();
 	}
 
 	async loadAllData(): Promise<DashboardData> {
-		const rpcResult = await this.supabase.rpc(
-			'get_dashboard_data' as keyof Database['public']['Functions']
-		);
+		const rpcResult = await this.supabase.rpc('get_dashboard_data');
 
 		if (rpcResult.error) {
 			throw rpcResult.error;
@@ -260,7 +229,6 @@ export class DashboardDataLoader {
 	}
 
 	async exportUserData(): Promise<UserExportData> {
-		// Load all user data including detailed user and profile information
 		const [userData, profileData, friendRequests, sentFriendRequests, friends, quickStatuses] =
 			await Promise.all([
 				this.supabase
@@ -309,12 +277,8 @@ export class DashboardDataLoader {
 	}
 
 	async deleteUserAccount(): Promise<void> {
-		// Use the database function to delete the user account
-		// This function handles all the deletion logic and can delete the auth user
 		try {
-			const { error } = await this.supabase.rpc(
-				'delete_user_account' as keyof Database['public']['Functions']
-			);
+			const { error } = await this.supabase.rpc('delete_user_account');
 
 			if (error) {
 				throw new Error(`Failed to delete account: ${error.message}`);

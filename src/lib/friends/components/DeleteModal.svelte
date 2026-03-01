@@ -11,7 +11,6 @@
 		$props();
 </script>
 
-<!-- Friend Deletion Confirmation Modal -->
 <dialog open={showDeleteModal} class="modal modal-bottom sm:modal-middle">
 	<div class="modal-box">
 		<h3 class="text-lg font-bold">Remove Friend</h3>

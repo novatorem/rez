@@ -11,19 +11,17 @@
 	import { validateStatus } from '$lib/status/validation';
 	import { verifyFriendshipExists } from '$lib/friends/api';
 	import { friendOrderStore } from '$lib/friends/order';
-	import { RealtimeSubscriptionManager } from '$lib/realtime/subscriptions';
+	import { RealtimeSubscriptionManager, type StatusChangePayload } from '$lib/realtime/subscriptions';
 
 	let { data } = $props();
 	let { supabase, user } = $derived(data);
 
-	// Client-side loaded data
 	let dashboardData = $state<DashboardData | null>(null);
 	let isLoadingData = $state(true);
 	let isInitialLoad = $state(true);
 	let isReady = $derived(!(isInitialLoad && isLoadingData));
 	let hasLoadedData = false;
 
-	// Derived values from dashboard data
 	let currentStatus = $derived(dashboardData?.currentStatus || '');
 	let friendRequests = $derived(dashboardData?.friendRequests || []);
 	let sentFriendRequests = $derived(dashboardData?.sentFriendRequests || []);
@@ -31,24 +29,18 @@
 	let friends = $derived(friendOrderStore.getOrderedFriends(rawFriends));
 	let quickStatuses = $derived(dashboardData?.quickStatuses || []);
 
-	// Reactive state
 	let statusInputText = $state('');
-
-	// Loading states
 	let isUpdatingStatus = $state(false);
 	let deletingFriends = $state(new Set<string>());
 
-	// Modal state for friend deletion confirmation
 	let showDeleteModal = $state(false);
 	let friendToDelete = $state<{ id: string; name: string } | null>(null);
 
-	// Real-time subscription manager (non-reactive to avoid effect loops)
 	let subscriptionManager: RealtimeSubscriptionManager | null = null;
-	let refreshTimer: ReturnType<typeof setTimeout> | null = null;
-	// Track the user ID we've subscribed for (non-reactive to avoid effect loops)
+	let requestRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+	let fullRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 	let subscribedUserId: string | null = null;
 
-	// Load dashboard data on client side - only run once when user/supabase become available
 	$effect(() => {
 		if (user && supabase && !hasLoadedData) {
 			loadDashboardData();
@@ -56,11 +48,9 @@
 		}
 	});
 
-	// Set up real-time subscriptions separately - only when user changes
 	$effect(() => {
 		const userId = user?.id;
 
-		// If user/supabase unavailable, cleanup and exit
 		if (!userId || !supabase) {
 			if (subscribedUserId) {
 				cleanupRealtimeSubscriptions();
@@ -69,10 +59,8 @@
 			return;
 		}
 
-		// If already subscribed for this user, just ensure cleanup on unmount
 		if (subscribedUserId === userId) {
 			return () => {
-				// Cleanup on unmount
 				if (subscribedUserId === userId) {
 					cleanupRealtimeSubscriptions();
 					subscribedUserId = null;
@@ -80,16 +68,13 @@
 			};
 		}
 
-		// Clean up old subscriptions if user changed
 		if (subscribedUserId && subscribedUserId !== userId) {
 			cleanupRealtimeSubscriptions();
 		}
 
-		// Set up new subscriptions
 		setupRealtimeSubscriptions();
 		subscribedUserId = userId;
 
-		// Cleanup on unmount
 		return () => {
 			cleanupRealtimeSubscriptions();
 			subscribedUserId = null;
@@ -99,7 +84,6 @@
 	const loadDashboardData = async (showSkeletons = true) => {
 		if (!user || !supabase) return;
 
-		// Only show skeletons if this is the initial load or explicitly requested
 		if (showSkeletons) {
 			isLoadingData = true;
 		}
@@ -107,8 +91,6 @@
 		try {
 			const dataLoader = new DashboardDataLoader(supabase, user.id);
 			dashboardData = await dataLoader.loadAllData();
-			// Keep the profiles subscription scoped to the current friend list.
-			// Safe to call on every refresh — no-op when the list hasn't changed.
 			subscriptionManager?.updateFriendIds(dashboardData.friends.map((f) => f.id));
 		} catch (error) {
 			handleDatabaseError(error, 'load dashboard data');
@@ -116,48 +98,80 @@
 			if (showSkeletons) {
 				isLoadingData = false;
 			}
-			// Mark that initial load is complete
 			isInitialLoad = false;
 		}
 	};
 
 	const refreshData = async () => {
-		await loadDashboardData(false); // Don't show skeletons on refresh
+		await loadDashboardData(false);
 	};
 
-	// Debounced refresh to avoid too many rapid refreshes from multiple events
-	const debouncedRefresh = () => {
-		if (refreshTimer) {
-			clearTimeout(refreshTimer);
-		}
-		refreshTimer = setTimeout(() => {
-			refreshData();
-		}, 300); // Wait 300ms for additional events to batch
+	const handleRealtimeStatusChange = (payload: StatusChangePayload) => {
+		if (!dashboardData) return;
+
+		const idx = dashboardData.friends.findIndex((f) => f.id === payload.id);
+		if (idx === -1) return;
+
+		dashboardData.friends[idx] = {
+			...dashboardData.friends[idx],
+			status: payload.status,
+			status_updated_at: payload.updated_at
+		};
+		dashboardData = { ...dashboardData };
 	};
 
-	// Set up real-time subscriptions
+	const debouncedRequestRefresh = () => {
+		if (requestRefreshTimer) clearTimeout(requestRefreshTimer);
+		requestRefreshTimer = setTimeout(async () => {
+			if (!user || !supabase) return;
+			try {
+				const loader = new DashboardDataLoader(supabase, user.id);
+				const [incoming, sent] = await Promise.all([
+					loader.loadFriendRequests(),
+					loader.loadSentFriendRequests()
+				]);
+				if (dashboardData) {
+					dashboardData = {
+						...dashboardData,
+						friendRequests: incoming,
+						sentFriendRequests: sent
+					};
+				}
+			} catch (error) {
+				handleDatabaseError(error, 'refresh friend requests');
+			}
+		}, 300);
+	};
+
+	const debouncedFullRefresh = () => {
+		if (fullRefreshTimer) clearTimeout(fullRefreshTimer);
+		fullRefreshTimer = setTimeout(() => refreshData(), 300);
+	};
+
 	const setupRealtimeSubscriptions = () => {
 		if (!user || !supabase || subscriptionManager) return;
 
 		try {
 			const manager = new RealtimeSubscriptionManager(supabase, user.id);
 			manager.subscribe({
-				onFriendRequestChange: debouncedRefresh,
-				onFriendshipChange: debouncedRefresh,
-				onStatusChange: debouncedRefresh
+				onFriendRequestChange: debouncedRequestRefresh,
+				onFriendshipChange: debouncedFullRefresh,
+				onStatusChange: handleRealtimeStatusChange
 			});
 			subscriptionManager = manager;
 		} catch (error) {
 			console.error('Failed to set up real-time subscriptions:', error);
-			// Real-time subscriptions are optional - the app will still work without them
 		}
 	};
 
-	// Clean up real-time subscriptions
 	const cleanupRealtimeSubscriptions = () => {
-		if (refreshTimer) {
-			clearTimeout(refreshTimer);
-			refreshTimer = null;
+		if (requestRefreshTimer) {
+			clearTimeout(requestRefreshTimer);
+			requestRefreshTimer = null;
+		}
+		if (fullRefreshTimer) {
+			clearTimeout(fullRefreshTimer);
+			fullRefreshTimer = null;
 		}
 		if (subscriptionManager) {
 			subscriptionManager.unsubscribe();
@@ -165,7 +179,6 @@
 		}
 	};
 
-	// Event handlers - defined as functions that can access current state
 	const handleStatusUpdate = async (evt: SubmitEvent) => {
 		evt.preventDefault();
 		if (!user || !supabase) return;
@@ -202,11 +215,9 @@
 	};
 
 	const handleDeleteFriend = (friendId: string) => {
-		// Find the friend to get their display name
 		const friend = friends.find((f) => f.id === friendId);
 		if (!friend) return;
 
-		// Set the friend to delete and show modal
 		friendToDelete = {
 			id: friendId,
 			name: getDisplayName(friend.display_name, friend.username)
@@ -215,7 +226,6 @@
 	};
 
 	const handleReorderFriends = (reorderedFriends: typeof friends) => {
-		// Update the friend order in the store
 		friendOrderStore.updateOrder(reorderedFriends);
 	};
 
@@ -224,11 +234,9 @@
 
 		const friendId = friendToDelete.id;
 
-		// Add to deleting set to show loading state
 		deletingFriends = new Set([...deletingFriends, friendId]);
 
 		try {
-			// First, verify the friendship exists before attempting deletion
 			const friendshipExists = await verifyFriendshipExists(supabase, user.id, friendId);
 			if (!friendshipExists) {
 				NotificationManager.showError(
@@ -237,7 +245,6 @@
 				return;
 			}
 
-			// Delete the single friendship record (works regardless of which direction it's stored)
 			const { error } = await supabase
 				.from('friends')
 				.delete()
@@ -250,7 +257,6 @@
 				return;
 			}
 
-			// Remove friend from order store
 			friendOrderStore.removeFriend(friendId);
 
 			await refreshData();
@@ -259,7 +265,6 @@
 			handleDatabaseError(error, 'remove friend');
 		} finally {
 			deletingFriends = new Set([...deletingFriends].filter((id) => id !== friendId));
-			// Close modal
 			showDeleteModal = false;
 			friendToDelete = null;
 		}
@@ -307,7 +312,6 @@
 	{/if}
 </div>
 
-<!-- Friend Deletion Confirmation Modal -->
 <DeleteFriendModal
 	{showDeleteModal}
 	{friendToDelete}

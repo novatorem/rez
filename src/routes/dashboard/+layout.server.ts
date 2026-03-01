@@ -1,8 +1,4 @@
-/**
- * This file is necessary to ensure protection of all routes in the `private`
- * directory. It makes the routes in this directory _dynamic_ routes, which
- * send a server request, and thus trigger `hooks.server.ts`.
- **/
+// This file makes dashboard routes dynamic, ensuring hooks.server.ts auth guards run on every request.
 
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
