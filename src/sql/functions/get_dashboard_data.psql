@@ -4,7 +4,7 @@
 -- with statuses.
 --
 -- SECURITY INVOKER (default) means the function runs as the calling user, so
--- all RLS policies on the underlying tables apply automatically — no need to
+-- all RLS policies on the underlying tables apply automatically - no need to
 -- re-implement access control here.
 --
 -- STABLE tells the planner the function does not modify the database and
@@ -52,7 +52,7 @@ AS $$
     -- Friends with their current status.
     -- The friends table stores one record per pair with user_id < friend_id
     -- (enforced by the normalize_friendship_order trigger), so the current
-    -- user can appear in either column — the CASE picks the other person.
+    -- user can appear in either column - the CASE picks the other person.
     'friends', (
       SELECT COALESCE(json_agg(json_build_object(
         'id',                friend_ids.other_id,

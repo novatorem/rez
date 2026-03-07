@@ -1,24 +1,21 @@
 <script lang="ts">
-	import { formatStatusUpdatedAt } from '$lib/status/formatting';
+  import { formatStatusUpdatedAt } from '$lib/status/formatting';
+  import { getNow, subscribeToTick } from './now.svelte.js';
 
-	interface Props {
-		timestamp: string | null;
-	}
+  interface Props {
+    timestamp: string | null;
+  }
 
-	let { timestamp }: Props = $props();
-	let now = $state(Date.now());
+  let { timestamp }: Props = $props();
 
-	$effect(() => {
-		const interval = setInterval(() => {
-			now = Date.now();
-		}, 30_000);
-		return () => clearInterval(interval);
-	});
+  $effect(() => {
+    return subscribeToTick();
+  });
 
-	let display = $derived.by(() => {
-		void now;
-		return formatStatusUpdatedAt(timestamp);
-	});
+  let display = $derived.by(() => {
+    void getNow();
+    return formatStatusUpdatedAt(timestamp);
+  });
 </script>
 
 {display}
