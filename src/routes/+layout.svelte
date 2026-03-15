@@ -40,18 +40,18 @@
           invalidate('supabase:auth');
         }
 
-      if (event === 'PASSWORD_RECOVERY') {
-        if (!window.location.pathname.startsWith('/auth/reset-password')) {
-          window.location.href = '/auth/reset-password';
+        if (event === 'PASSWORD_RECOVERY') {
+          if (!window.location.pathname.startsWith('/auth/reset-password')) {
+            window.location.href = '/auth/reset-password';
+          }
         }
-      }
 
-      if (event === 'SIGNED_OUT') {
-        invalidate('supabase:auth');
-        if (!window.location.pathname.startsWith('/auth')) {
-          window.location.href = '/auth';
+        if (event === 'SIGNED_OUT') {
+          invalidate('supabase:auth');
+          if (!window.location.pathname.startsWith('/auth')) {
+            window.location.href = '/auth';
+          }
         }
-      }
       }
     );
 

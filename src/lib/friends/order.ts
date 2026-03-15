@@ -69,15 +69,14 @@ export class FriendOrderStore {
   }
 
   updateOrder(newOrder: Friend[]): void {
-    this.order = newOrder.map(friend => friend.id);
+    this.order = newOrder.map((friend) => friend.id);
     this.saveToStorage();
   }
 
   removeFriend(friendId: string): void {
-    this.order = this.order.filter(id => id !== friendId);
+    this.order = this.order.filter((id) => id !== friendId);
     this.saveToStorage();
   }
-
 }
 
 export const friendOrderStore = new FriendOrderStore();

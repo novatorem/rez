@@ -338,23 +338,25 @@
             out:fly={{ x: 24, duration: 200, easing: cubicOut }}
           >
             <div class="flex w-full items-center justify-between gap-3">
-              <div class="flex flex-1 items-center gap-3">
-                <div class="avatar">
+              <div class="flex min-w-0 flex-1 items-center gap-3">
+                <div class="avatar flex-shrink-0">
                   <Avatar name={request.requester_id} size={40} variant="beam" />
                 </div>
                 <div class="flex min-w-0 flex-col">
                   <span class="truncate"
-                    >{getDisplayName(request.requester_display_name, request.requester_username)} wants
-                    to be your friend</span
+                    >{getDisplayName(
+                      request.requester_display_name,
+                      request.requester_username
+                    )}</span
                   >
                   {#if request.requester_display_name}
                     <span class="text-base-content/60 text-xs">@{request.requester_username}</span>
                   {/if}
                 </div>
               </div>
-              <div class="join">
+              <div class="flex flex-shrink-0 gap-1.5">
                 <button
-                  class="btn btn-success join-item sm:btn-sm"
+                  class="btn btn-success btn-outline sm:btn-sm"
                   onclick={() => handleFriendRequestAction(request.id, 'accept')}
                   disabled={processingRequests.has(request.id)}
                   aria-label="Accept friend request"
@@ -378,7 +380,7 @@
                   {/if}
                 </button>
                 <button
-                  class="btn btn-error join-item sm:btn-sm"
+                  class="btn btn-error btn-outline sm:btn-sm"
                   onclick={() => handleFriendRequestAction(request.id, 'reject')}
                   disabled={processingRequests.has(request.id)}
                   aria-label="Decline friend request"

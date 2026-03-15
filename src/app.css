@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@plugin "daisyui" {
+@plugin 'daisyui' {
   themes: all;
 }
 
@@ -69,11 +69,21 @@
 }
 
 /* Animation delay utilities */
-.animate-delay-0  { animation-delay: 0ms; }
-.animate-delay-1  { animation-delay: 60ms; }
-.animate-delay-2  { animation-delay: 120ms; }
-.animate-delay-3  { animation-delay: 190ms; }
-.animate-delay-4  { animation-delay: 300ms; }
+.animate-delay-0 {
+  animation-delay: 0ms;
+}
+.animate-delay-1 {
+  animation-delay: 60ms;
+}
+.animate-delay-2 {
+  animation-delay: 120ms;
+}
+.animate-delay-3 {
+  animation-delay: 190ms;
+}
+.animate-delay-4 {
+  animation-delay: 300ms;
+}
 
 .animate-alert-in {
   animation: alertIn 0.22s var(--ease-out-quart) both;
@@ -95,14 +105,23 @@
 
 /* ── Drop placement confirmation ──────────────────────────── */
 @keyframes justPlaced {
-  0%   { outline: 2px solid color-mix(in oklch, var(--color-primary) 55%, transparent); }
-  100% { outline: 2px solid color-mix(in oklch, var(--color-primary) 0%, transparent); }
+  0% {
+    outline: 2px solid color-mix(in oklch, var(--color-primary) 55%, transparent);
+  }
+  100% {
+    outline: 2px solid color-mix(in oklch, var(--color-primary) 0%, transparent);
+  }
 }
 
 /* ── Live status pulse ─────────────────────────────────────── */
 @keyframes livePulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 
 .animate-live-pulse {

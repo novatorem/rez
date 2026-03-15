@@ -32,16 +32,16 @@
   let charsRemaining = $derived(MAX_STATUS_LENGTH - statusCharacterCount);
 
   // Track currentStatus changes to flash a success checkmark on the submit button
-  let prevStatus = currentStatus;
+  let prevStatus: string | undefined;
   $effect(() => {
-    if (currentStatus !== prevStatus) {
-      prevStatus = currentStatus;
+    if (prevStatus !== undefined && currentStatus !== prevStatus) {
       if (successTimer) clearTimeout(successTimer);
       showSuccess = true;
       successTimer = setTimeout(() => {
         showSuccess = false;
       }, 700);
     }
+    prevStatus = currentStatus;
   });
 
   const handleQuickStatusChange = (statusText: string, statusId: string) => {
@@ -85,6 +85,31 @@
         </button>
       {/if}
     </div>
+
+    {#if showQuickStatuses && quickStatuses.length > 0}
+      <form transition:fly={{ y: 8, duration: 180, easing: cubicOut }} class="flex-wrap filter">
+        {#if selectedQuickStatusId}
+          <input
+            class="btn btn-square sm:btn-sm"
+            type="reset"
+            value="×"
+            onclick={resetQuickStatus}
+            aria-label="Clear selection"
+            title="Clear selection"
+          />
+        {/if}
+        {#each quickStatuses as quickStatus (quickStatus.id)}
+          <input
+            class="btn sm:btn-sm"
+            type="radio"
+            name="quick-status"
+            aria-label={quickStatus.status_text}
+            checked={selectedQuickStatusId === quickStatus.id}
+            onchange={() => handleQuickStatusChange(quickStatus.status_text, quickStatus.id)}
+          />
+        {/each}
+      </form>
+    {/if}
 
     <form onsubmit={onStatusUpdate}>
       <div class="join w-full">
@@ -151,34 +176,6 @@
         </button>
       </div>
     </form>
-
-    {#if showQuickStatuses && quickStatuses.length > 0}
-      <form
-        transition:fly={{ y: 8, duration: 180, easing: cubicOut }}
-        class="mt-4 flex-wrap filter"
-      >
-        {#if selectedQuickStatusId}
-          <input
-            class="btn btn-square sm:btn-sm"
-            type="reset"
-            value="×"
-            onclick={resetQuickStatus}
-            aria-label="Clear selection"
-            title="Clear selection"
-          />
-        {/if}
-        {#each quickStatuses as quickStatus (quickStatus.id)}
-          <input
-            class="btn sm:btn-sm"
-            type="radio"
-            name="quick-status"
-            aria-label={quickStatus.status_text}
-            checked={selectedQuickStatusId === quickStatus.id}
-            onchange={() => handleQuickStatusChange(quickStatus.status_text, quickStatus.id)}
-          />
-        {/each}
-      </form>
-    {/if}
 
     {#if currentStatus}
       {#key currentStatus}

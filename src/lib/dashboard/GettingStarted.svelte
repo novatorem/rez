@@ -107,7 +107,7 @@
         </div>
 
         <button
-          class="text-base-content/40 hover:text-base-content/70 -mr-1 -mt-1 flex min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded-full transition-colors"
+          class="text-base-content/40 hover:text-base-content/70 -mt-1 -mr-1 flex min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded-full transition-colors"
           onclick={dismiss}
           aria-label="Dismiss getting started guide"
         >
