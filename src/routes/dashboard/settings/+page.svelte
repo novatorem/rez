@@ -847,7 +847,7 @@
         </h2>
         <div class="space-y-4">
           <p class="text-base-content/70 text-sm">
-            Save statuses you use often — they'll appear as shortcuts on your dashboard.
+            Save statuses you use often - they'll appear as shortcuts on your dashboard.
           </p>
 
           {#if isLoadingData}
@@ -1023,7 +1023,10 @@
       </div>
     </section>
 
-    <section class="card bg-error/5 border border-error shadow-sm" aria-labelledby="danger-zone-heading">
+    <section
+      class="card bg-error/5 border-error border shadow-sm"
+      aria-labelledby="danger-zone-heading"
+    >
       <div class="card-body p-6 sm:p-8">
         <h2
           id="danger-zone-heading"

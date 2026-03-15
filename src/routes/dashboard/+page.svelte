@@ -1,16 +1,19 @@
 <script lang="ts">
-  import DeleteFriendModal from '$lib/friends/components/DeleteModal.svelte';
   import GettingStarted from '$lib/dashboard/GettingStarted.svelte';
+  import { DashboardDataLoader, type DashboardData } from '$lib/dashboard/loader';
+  import { verifyFriendshipExists } from '$lib/friends/api';
+  import DeleteFriendModal from '$lib/friends/components/DeleteModal.svelte';
   import FriendsList from '$lib/friends/components/List.svelte';
   import LoadingSkeletons from '$lib/friends/components/ListSkeleton.svelte';
+  import { friendOrderStore } from '$lib/friends/order';
+  import {
+    RealtimeSubscriptionManager,
+    type StatusChangePayload
+  } from '$lib/realtime/subscriptions';
   import StatusSection from '$lib/status/components/Section.svelte';
   import StatusSectionSkeleton from '$lib/status/components/Skeleton.svelte';
-  import { DashboardDataLoader, type DashboardData } from '$lib/dashboard/loader';
-  import { getDisplayName, handleDatabaseError, NotificationManager } from '$lib/ui/notifications';
   import { validateStatus } from '$lib/status/validation';
-  import { verifyFriendshipExists } from '$lib/friends/api';
-  import { friendOrderStore } from '$lib/friends/order';
-  import { RealtimeSubscriptionManager, type StatusChangePayload } from '$lib/realtime/subscriptions';
+  import { getDisplayName, handleDatabaseError, NotificationManager } from '$lib/ui/notifications';
 
   let { data } = $props();
   let { supabase, user } = $derived(data);
@@ -208,7 +211,7 @@
       const friendshipExists = await verifyFriendshipExists(supabase, user.id, friendId);
       if (!friendshipExists) {
         NotificationManager.showError(
-          "Couldn't remove — they may have already left your friends list."
+          "Couldn't remove - they may have already left your friends list."
         );
         return;
       }
@@ -269,7 +272,6 @@
         onReorderFriends={handleReorderFriends}
       />
     </div>
-
   {/if}
 </div>
 

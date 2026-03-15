@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { MAX_STATUS_LENGTH } from '$lib/status/validation';
   import type { QuickStatus } from '$lib/status/quick';
+  import { MAX_STATUS_LENGTH } from '$lib/status/validation';
+  import { cubicOut } from 'svelte/easing';
   import type { EventHandler } from 'svelte/elements';
   import { fly } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
 
   interface Props {
     currentStatus: string;
@@ -27,7 +27,7 @@
   let successTimer: ReturnType<typeof setTimeout> | null = null;
 
   let statusCharacterCount = $derived(statusInputText?.length ?? 0);
-  // Show counter only when within 14 chars of the limit — enough notice, no noise otherwise
+  // Show counter only when within 14 chars of the limit - enough notice, no noise otherwise
   let showCounter = $derived(statusCharacterCount >= MAX_STATUS_LENGTH - 14);
   let charsRemaining = $derived(MAX_STATUS_LENGTH - statusCharacterCount);
 
@@ -38,7 +38,9 @@
       prevStatus = currentStatus;
       if (successTimer) clearTimeout(successTimer);
       showSuccess = true;
-      successTimer = setTimeout(() => { showSuccess = false; }, 700);
+      successTimer = setTimeout(() => {
+        showSuccess = false;
+      }, 700);
     }
   });
 
@@ -59,23 +61,27 @@
       {#if quickStatuses.length > 0}
         <button
           type="button"
-          class="btn btn-ghost btn-xs gap-1 text-base-content/40 hover:text-base-content/60"
-          onclick={() => { showQuickStatuses = !showQuickStatuses; }}
+          class="btn btn-ghost btn-xs text-base-content/40 hover:text-base-content/60 gap-1"
+          onclick={() => {
+            showQuickStatuses = !showQuickStatuses;
+          }}
           aria-expanded={showQuickStatuses}
           aria-label={showQuickStatuses ? 'Hide quick statuses' : 'Show quick statuses'}
         >
           <span>Quick</span>
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            class="h-3 w-3 transition-transform duration-200 {showQuickStatuses ? 'rotate-180' : ''}"
+            class="h-3 w-3 transition-transform duration-200 {showQuickStatuses
+              ? 'rotate-180'
+              : ''}"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
             stroke-width="2.5"
             stroke-linecap="round"
             stroke-linejoin="round"
-            aria-hidden="true"
-          ><path d="M6 9l6 6 6-6" /></svg>
+            aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg
+          >
         </button>
       {/if}
     </div>
@@ -96,10 +102,11 @@
           {#if showCounter}
             <span
               transition:fly={{ x: 4, duration: 140, easing: cubicOut }}
-              class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 select-none text-xs tabular-nums {charsRemaining < 0
+              class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs tabular-nums select-none {charsRemaining <
+              0
                 ? 'text-error'
-                : 'text-base-content/35'}"
-            >{charsRemaining}</span>
+                : 'text-base-content/35'}">{charsRemaining}</span
+            >
           {/if}
         </div>
         <button
@@ -121,8 +128,8 @@
               stroke-linecap="round"
               stroke-linejoin="round"
               class="animate-status-reveal"
-              aria-hidden="true"
-            ><path d="M20 6L9 17l-5-5" /></svg>
+              aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg
+            >
           {:else}
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
               ><g
@@ -143,13 +150,12 @@
           {/if}
         </button>
       </div>
-
     </form>
 
     {#if showQuickStatuses && quickStatuses.length > 0}
       <form
         transition:fly={{ y: 8, duration: 180, easing: cubicOut }}
-        class="filter mt-4 flex-wrap"
+        class="mt-4 flex-wrap filter"
       >
         {#if selectedQuickStatusId}
           <input

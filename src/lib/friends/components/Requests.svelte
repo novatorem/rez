@@ -119,9 +119,7 @@
 
       const existingIncoming = await checkIncomingFriendRequest(supabase, targetUser.id, user.id);
       if (existingIncoming.exists && existingIncoming.isPending) {
-        NotificationManager.showError(
-          "They've already sent you a request — check the list below."
-        );
+        NotificationManager.showError("They've already sent you a request - check the list below.");
         return;
       }
 
@@ -322,12 +320,12 @@
       </div>
     </form>
     <p class="text-base-content/50 mb-3 text-xs">
-      Ask your friend for their username — they can find it in Settings.
+      Ask your friend for their username - they can find it in Settings.
     </p>
 
     {#if (!friendRequests || friendRequests.length === 0) && (!sentFriendRequests || sentFriendRequests.length === 0)}
       <p class="text-base-content/50 text-sm">
-        No pending requests yet — search by username to add a friend.
+        No pending requests yet - search by username to add a friend.
       </p>
     {/if}
 
