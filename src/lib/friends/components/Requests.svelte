@@ -59,7 +59,7 @@
     const username = formData.get('username') as string;
 
     if (!username) {
-      NotificationManager.showError('Please enter a username');
+      NotificationManager.showError('Enter a username to search.');
       return;
     }
 
@@ -67,7 +67,7 @@
     try {
       if (await hasExceededHourlyRequestLimit()) {
         NotificationManager.showError(
-          `You've sent ${RATE_LIMIT_PER_HOUR} friend requests in the last hour. Please wait before sending more.`
+          `You've hit the hourly limit for friend requests. Try again later.`
         );
         return;
       }
@@ -84,12 +84,12 @@
       }
 
       if (!targetUser) {
-        NotificationManager.showError('User not found');
+        NotificationManager.showError('No one found with that username.');
         return;
       }
 
       if (targetUser.id === user.id) {
-        NotificationManager.showError('You cannot send a friend request to yourself');
+        NotificationManager.showError("That's your own username!");
         return;
       }
 
@@ -107,20 +107,20 @@
       }
 
       if (existingFriendship) {
-        NotificationManager.showError('You are already friends with this user');
+        NotificationManager.showError("You're already friends with them.");
         return;
       }
 
       const existingOutgoing = await checkExistingFriendRequest(supabase, user.id, targetUser.id);
       if (existingOutgoing.exists) {
-        NotificationManager.showError('You have already sent a friend request to this user');
+        NotificationManager.showError("You've already sent them a friend request.");
         return;
       }
 
       const existingIncoming = await checkIncomingFriendRequest(supabase, targetUser.id, user.id);
       if (existingIncoming.exists && existingIncoming.isPending) {
         NotificationManager.showError(
-          'This user has already sent you a friend request. Check your pending requests.'
+          "They've already sent you a request — check the list below."
         );
         return;
       }
@@ -133,7 +133,7 @@
       if (insertError) {
         if (insertError.code === POSTGRES_RLS_VIOLATION) {
           NotificationManager.showError(
-            `You've reached the limit of ${RATE_LIMIT_PER_HOUR} friend requests per hour. Please try again later.`
+            `You've hit the hourly limit for friend requests. Try again later.`
           );
         } else {
           handleDatabaseError(insertError, 'send friend request');
@@ -175,7 +175,7 @@
       }
 
       if (!friendRequest) {
-        NotificationManager.showError('Friend request not found or already processed');
+        NotificationManager.showError('This request is no longer available.');
         return;
       }
 
@@ -189,7 +189,7 @@
           .limit(1);
 
         if (existingFriendship && existingFriendship.length > 0) {
-          NotificationManager.showError('You are already friends with this user');
+          NotificationManager.showError("You're already friends with them.");
           return;
         }
 
@@ -199,7 +199,7 @@
 
         if (insertError) {
           if (insertError.code === '23505') {
-            NotificationManager.showError('You are already friends with this user');
+            NotificationManager.showError("You're already friends with them.");
           } else {
             handleDatabaseError(insertError, 'create friendship');
           }
@@ -297,6 +297,9 @@
               maxlength="20"
               aria-label="Friend's username"
               title="Must start with a letter, then letters, numbers, dots, dashes, or underscores"
+              autocorrect="off"
+              autocapitalize="none"
+              spellcheck="false"
             />
           </label>
         </div>
@@ -319,12 +322,12 @@
       </div>
     </form>
     <p class="text-base-content/50 mb-3 text-xs">
-      Ask your friend for their username - they can find it in Settings.
+      Ask your friend for their username — they can find it in Settings.
     </p>
 
     {#if (!friendRequests || friendRequests.length === 0) && (!sentFriendRequests || sentFriendRequests.length === 0)}
       <p class="text-base-content/50 text-sm">
-        No pending requests. Enter a username above to find someone.
+        No pending requests yet — search by username to add a friend.
       </p>
     {/if}
 
@@ -339,7 +342,7 @@
             <div class="flex w-full items-center justify-between gap-3">
               <div class="flex flex-1 items-center gap-3">
                 <div class="avatar">
-                  <Avatar name={request.requester_id} size={40} variant="marble" />
+                  <Avatar name={request.requester_id} size={40} variant="beam" />
                 </div>
                 <div class="flex min-w-0 flex-col">
                   <span class="truncate"
@@ -380,7 +383,7 @@
                   class="btn btn-error join-item sm:btn-sm"
                   onclick={() => handleFriendRequestAction(request.id, 'reject')}
                   disabled={processingRequests.has(request.id)}
-                  aria-label="Reject friend request"
+                  aria-label="Decline friend request"
                 >
                   {#if processingRequests.has(request.id)}
                     <span class="loading loading-spinner loading-xs"></span>
@@ -408,7 +411,7 @@
     {/if}
 
     {#if sentFriendRequests && sentFriendRequests.length > 0}
-      <h3 class="mt-4 font-bold">Sent</h3>
+      <h3 class="mt-4 font-bold">Sent requests</h3>
       <ul class="list">
         {#each sentFriendRequests as request (request.id)}
           <li
@@ -419,7 +422,7 @@
             <div class="flex w-full items-center justify-between gap-3">
               <div class="flex flex-1 items-center gap-3">
                 <div class="avatar">
-                  <Avatar name={request.target_id} size={40} variant="marble" />
+                  <Avatar name={request.target_id} size={40} variant="beam" />
                 </div>
                 <div class="flex flex-col">
                   <span>{getDisplayName(request.target_display_name, request.target_username)}</span
@@ -430,7 +433,7 @@
                 </div>
               </div>
               <button
-                class="btn btn-error sm:btn-sm"
+                class="btn btn-ghost sm:btn-sm"
                 onclick={() => handleCancelFriendRequest(request.id)}
                 disabled={cancellingRequests.has(request.id)}
                 aria-label="Cancel friend request"

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { dev } from '$app/environment';
   import { resolve } from '$app/paths';
   import { page } from '$app/stores';
   import DebugPanel from '$lib/ui/DebugPanel.svelte';
@@ -37,22 +38,24 @@
         </svg>
         <div class="flex-1">
           <span class="text-base font-semibold">
-            {errorMessage ? 'Error Details' : 'We couldn\'t sign you in. Please try again.'}
+            {errorMessage ? 'Something went wrong' : "We couldn't sign you in. Please try again."}
           </span>
           {#if errorMessage}
             <p class="mt-1 text-base">{errorMessage}</p>
           {/if}
-          {#if errorCode}
+          {#if dev && errorCode}
             <p class="mt-1 text-sm opacity-75">Error Code: {errorCode}</p>
           {/if}
-          <div class="mt-3">
-            <button
-              class="btn btn-sm btn-outline"
-              onclick={() => { if (debugPanel) debugPanel.openPanel(); }}
-            >
-              View Debug Info
-            </button>
-          </div>
+          {#if dev}
+            <div class="mt-3">
+              <button
+                class="btn btn-sm btn-outline"
+                onclick={() => { if (debugPanel) debugPanel.openPanel(); }}
+              >
+                View Debug Info
+              </button>
+            </div>
+          {/if}
         </div>
       </div>
 
@@ -65,13 +68,13 @@
           <li>Wrong email or password</li>
           <li>No account with that email</li>
           <li>A temporary connection issue</li>
-          <li>Cookie restrictions in Safari on iOS</li>
+          <li>Sign-in blocked by browser settings</li>
         </ul>
       {/if}
 
       <div class="flex flex-col gap-3 sm:flex-row sm:justify-center">
         <a href={resolve('/auth')} class="btn btn-primary h-12 rounded-lg px-8 text-base font-semibold shadow-md">
-          Back to Sign In
+          Back to sign in
         </a>
         <a href={resolve('/')} class="btn btn-ghost h-12 rounded-lg px-8 text-base font-semibold">
           Home

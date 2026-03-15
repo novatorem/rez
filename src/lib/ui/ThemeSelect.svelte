@@ -60,7 +60,7 @@
     </svg>
   </div>
   <div
-    class="dropdown-content bg-base-200 text-base-content rounded-box h-[30.5rem] max-h-[calc(100vh-8.6rem)] w-full overflow-y-auto border-[length:var(--border)] border-white/5 shadow-2xl outline-[length:var(--border)] outline-black/5"
+    class="dropdown-content bg-base-200 text-base-content rounded-box h-[30.5rem] max-h-[calc(100dvh-8.6rem)] w-full overflow-y-auto border-[length:var(--border)] border-white/5 shadow-2xl outline-[length:var(--border)] outline-black/5"
   >
     <ul class="menu w-full">
       <li class="menu-title text-xs">Theme</li>

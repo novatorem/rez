@@ -325,7 +325,7 @@
         <div class="bg-base-300 rounded-box p-6 text-center">
           <p class="text-base-content/70 mb-1 font-medium">No friends yet</p>
           <p class="text-base-content/50 text-sm">
-            Search for friends by username in the panel below.
+            <a href="/dashboard/friends" class="link link-primary">Add friends</a> by searching for their username.
           </p>
         </div>
       {/if}

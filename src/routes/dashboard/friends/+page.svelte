@@ -46,7 +46,7 @@
   };
 </script>
 
-<div class="flex flex-col gap-4 p-4">
+<div class="container mx-auto flex max-w-2xl flex-col gap-4 p-4">
   {#if isLoading}
     <FriendRequestsSectionSkeleton />
   {:else}

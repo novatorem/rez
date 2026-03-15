@@ -3,7 +3,7 @@
 
 <div class="card bg-base-200">
   <div class="card-body">
-    <h2 class="card-title">Friend Requests</h2>
+    <h2 class="card-title">Add Friends</h2>
 
     <div class="join mb-4 w-full">
       <div class="w-full">

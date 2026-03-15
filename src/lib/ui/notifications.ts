@@ -20,7 +20,7 @@ export class NotificationManager {
 
 export function handleDatabaseError(error: unknown, operation: string): boolean {
   console.error(`Database error during ${operation}:`, error);
-  NotificationManager.showError(`Something went wrong - couldn't ${operation}.`);
+  NotificationManager.showError(`Something went wrong — couldn't ${operation}.`);
   return false;
 }
 

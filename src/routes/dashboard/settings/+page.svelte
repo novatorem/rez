@@ -90,7 +90,7 @@
 
   const exportData = async () => {
     if (!session?.user || !supabase) {
-      toastStore.error('Unable to export data: User not authenticated');
+      toastStore.error('Please sign in again to export your data.');
       return;
     }
 
@@ -106,7 +106,7 @@
         `rez-data-export-${new Date().toISOString().split('T')[0]}.json`
       );
 
-      toastStore.success('Data exported successfully!');
+      toastStore.success('Data exported.');
     } catch (error) {
       console.error('Export error:', error);
       handleDatabaseError(error, 'export data');
@@ -121,12 +121,12 @@
 
   const confirmDeleteAccount = async () => {
     if (!deletePassword.trim()) {
-      toastStore.error('Please enter your password to confirm account deletion');
+      toastStore.error('Enter your password to confirm deletion.');
       return;
     }
 
     if (!session?.user || !supabase) {
-      toastStore.error('Unable to delete account: User not authenticated');
+      toastStore.error('Please sign in again to delete your account.');
       return;
     }
 
@@ -185,7 +185,7 @@
       saveQuickStatuses(quickStatusInputs);
 
       await loadDashboardData();
-      toastStore.success('Quick statuses updated successfully');
+      toastStore.success('Quick statuses saved.');
     } catch (error) {
       handleDatabaseError(error, 'update quick statuses');
     } finally {
@@ -310,7 +310,7 @@
       }
 
       await loadDashboardData();
-      toastStore.success('Username updated successfully');
+      toastStore.success('Username updated.');
     } catch (error) {
       handleDatabaseError(error, 'update username');
     } finally {
@@ -342,7 +342,7 @@
       }
 
       await loadDashboardData();
-      toastStore.success('Display name updated successfully');
+      toastStore.success('Display name updated.');
     } catch (error) {
       handleDatabaseError(error, 'update display name');
     } finally {
@@ -406,7 +406,7 @@
             {:else}
               <div class="space-y-4">
                 {#if currentUsername}
-                  <div class="bg-base-200 border-base-300 rounded-lg border p-4">
+                  <div class="bg-base-300 rounded-lg p-4">
                     <p class="text-base-content text-lg font-medium">
                       Current username: <span class="text-primary font-mono">{currentUsername}</span
                       >
@@ -542,7 +542,7 @@
             {:else}
               <div class="space-y-4">
                 {#if currentDisplayName}
-                  <div class="bg-base-200 border-base-300 rounded-lg border p-4">
+                  <div class="bg-base-300 rounded-lg p-4">
                     <p class="text-base-content text-lg font-medium">
                       Current display name: <span class="text-primary">{currentDisplayName}</span>
                     </p>
@@ -685,7 +685,7 @@
               Email Address
             </h3>
 
-            <div class="bg-base-200 border-base-300 rounded-lg border p-4">
+            <div class="bg-base-300 rounded-lg p-4">
               <p class="text-base-content text-lg font-medium">
                 Current email: <span class="text-primary">{session?.user?.email || ''}</span>
               </p>
@@ -847,7 +847,7 @@
         </h2>
         <div class="space-y-4">
           <p class="text-base-content/70 text-sm">
-            Save statuses you use often - they'll appear as one-tap options on your dashboard.
+            Save statuses you use often — they'll appear as shortcuts on your dashboard.
           </p>
 
           {#if isLoadingData}
@@ -861,7 +861,7 @@
               {#each Array.from({ length: 5 }, (_, i) => i) as index (index)}
                 <div class="form-control min-w-0">
                   <label class="label" for="quick-status-{index}">
-                    <span class="label-text font-medium">Quick Status {index + 1}</span>
+                    <span class="label-text font-medium">Status {index + 1}</span>
                     <span
                       class="font-mono text-sm {(quickStatusInputs[index]?.length || 0) >
                       MAX_STATUS_LENGTH
@@ -1023,7 +1023,7 @@
       </div>
     </section>
 
-    <section class="card bg-base-100 border-error shadow-xl" aria-labelledby="danger-zone-heading">
+    <section class="card bg-error/5 border border-error shadow-sm" aria-labelledby="danger-zone-heading">
       <div class="card-body p-6 sm:p-8">
         <h2
           id="danger-zone-heading"
@@ -1095,7 +1095,7 @@
       Delete Account
     </h3>
     <p class="text-base-content/80 mb-6">
-      All your friends, statuses, and account data will be permanently deleted. This can't be
+      All your friendships, statuses, and account data will be permanently deleted. This can't be
       undone.
     </p>
     <div class="form-control mb-6">
@@ -1116,7 +1116,7 @@
           id="delete-password-help"
           class="label-text-alt text-error break-anywhere block w-full max-w-full text-sm leading-relaxed break-words hyphens-auto whitespace-normal sm:text-base"
         >
-          Enter your password to confirm deletion
+          Your account and all its data will be gone permanently.
         </span>
       </div>
     </div>

@@ -102,7 +102,7 @@
     </div>
 
     {#key view}
-      <div class="animate-fade-in-up w-full max-w-sm" style="animation-duration: 0.35s">
+      <div class="animate-fade-in-up-fast w-full max-w-sm">
         {#if view === 'login'}
           <h1 class="text-base-content mb-7 text-3xl font-bold tracking-tight">Welcome back.</h1>
 
@@ -136,7 +136,7 @@
                   </div>
                 {/if}
               </div>
-              <button class="btn btn-sm btn-ghost" onclick={clearErrors} aria-label="Dismiss error"
+              <button class="btn btn-sm btn-ghost" onclick={clearErrors} aria-label="Dismiss"
                 >✕</button
               >
             </div>
@@ -150,7 +150,7 @@
               return async ({ result }) => {
                 if (result.type === 'failure' && result.data) {
                   const data = result.data as { error?: string; errorCode?: string };
-                  loginError = data.error || "Couldn't sign in - check your email and password.";
+                  loginError = data.error || "Couldn't sign in. Check your email and password.";
                   if (debugPanel) {
                     debugPanel.addDebugLog('error', 'Login form error', {
                       errorCode: data.errorCode
@@ -250,7 +250,7 @@
                 />
                 <button
                   type="button"
-                  class="text-base-content/50 hover:text-base-content absolute top-1/2 right-3 -translate-y-1/2 p-1 transition-colors"
+                  class="text-base-content/50 hover:text-base-content absolute top-1/2 right-1 -translate-y-1/2 flex min-h-[44px] min-w-[44px] items-center justify-center transition-colors"
                   onclick={() => (showLoginPassword = !showLoginPassword)}
                   aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
                 >
@@ -368,7 +368,7 @@
                   </div>
                 {/if}
               </div>
-              <button class="btn btn-sm btn-ghost" onclick={clearErrors} aria-label="Dismiss error"
+              <button class="btn btn-sm btn-ghost" onclick={clearErrors} aria-label="Dismiss"
                 >✕</button
               >
             </div>
@@ -393,7 +393,7 @@
               <button
                 class="btn btn-sm btn-ghost"
                 onclick={clearErrors}
-                aria-label="Dismiss message">✕</button
+                aria-label="Dismiss">✕</button
               >
             </div>
           {/if}
@@ -411,7 +411,7 @@
                     errorName?: string;
                     isIOS?: boolean;
                   };
-                  signupError = data.error || "Couldn't create your account - please try again.";
+                  signupError = data.error || "Couldn't create your account. Please try again.";
                   if (debugPanel) {
                     debugPanel.addDebugLog('error', 'Signup form error', data);
                   }
@@ -518,7 +518,7 @@
                 />
                 <button
                   type="button"
-                  class="text-base-content/50 hover:text-base-content absolute top-1/2 right-3 -translate-y-1/2 p-1 transition-colors"
+                  class="text-base-content/50 hover:text-base-content absolute top-1/2 right-1 -translate-y-1/2 flex min-h-[44px] min-w-[44px] items-center justify-center transition-colors"
                   onclick={() => (showSignupPassword = !showSignupPassword)}
                   aria-label={showSignupPassword ? 'Hide password' : 'Show password'}
                 >

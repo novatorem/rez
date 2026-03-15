@@ -1,4 +1,4 @@
-<footer class="footer footer-horizontal bg-neutral text-neutral-content items-center p-4">
+<footer class="footer footer-horizontal bg-base-200 text-base-content items-center p-4">
   <aside class="grid-flow-col items-center">
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
       ><path
@@ -22,7 +22,7 @@
         />
       </svg>
     </a>
-    <a aria-label="Github" href="https://github.com/novatorem/rezonate">
+    <a aria-label="GitHub" href="https://github.com/novatorem/rezonate">
       <svg
         aria-hidden="true"
         height="24"

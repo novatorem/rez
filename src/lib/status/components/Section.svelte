@@ -19,8 +19,8 @@
     quickStatuses
   }: Props = $props();
 
-  let statusCharacterCount = $derived(statusInputText.length);
   let selectedQuickStatusId = $state<string>('');
+  let statusCharacterCount = $derived(statusInputText?.length ?? 0);
 
   const handleQuickStatusChange = (statusText: string, statusId: string) => {
     statusInputText = statusText;
@@ -48,14 +48,9 @@
             bind:value={statusInputText}
             maxlength={MAX_STATUS_LENGTH}
             required
-            title="Status message"
           />
-          <div class="validator-hint {statusCharacterCount > MAX_STATUS_LENGTH ? '' : 'hidden'}">
-            {statusCharacterCount}/{MAX_STATUS_LENGTH} characters
-            {statusCharacterCount > MAX_STATUS_LENGTH ? ' - Status too long!' : ''}
-          </div>
         </div>
-        <button class="btn btn-neutral join-item" disabled={isUpdatingStatus} aria-label="Update status">
+        <button class="btn btn-primary join-item" disabled={isUpdatingStatus} aria-label="Update status">
           {#if isUpdatingStatus}
             <span class="loading loading-spinner loading-sm"></span>
           {:else}
@@ -88,6 +83,7 @@
             type="reset"
             value="×"
             onclick={resetQuickStatus}
+            aria-label="Clear selection"
             title="Clear selection"
           />
         {/if}
@@ -107,7 +103,7 @@
     {#if currentStatus}
       {#key currentStatus}
         <div class="bg-base-300 animate-status-reveal rounded-lg p-3">
-          <p class="overflow-wrap-anywhere text-lg break-words">{currentStatus}</p>
+          <p class="text-lg break-words">{currentStatus}</p>
         </div>
       {/key}
     {/if}

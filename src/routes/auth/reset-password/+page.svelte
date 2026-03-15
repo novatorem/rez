@@ -80,8 +80,8 @@
         <p class="text-base-content/70 text-center text-base">
           This password reset link has expired or is invalid. Please request a new one.
         </p>
-        <a href={resolve('/auth')} class="btn btn-primary h-12 w-full rounded-lg text-base font-semibold shadow-md">
-          Back to Sign In
+        <a href={resolve('/auth')} class="btn btn-primary h-12 w-full text-base font-semibold">
+          Back to sign in
         </a>
       {:else}
         <h1 class="text-base-content text-center text-3xl font-bold tracking-tight">
@@ -121,7 +121,7 @@
               />
               <button
                 type="button"
-                class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-base-content/50 transition-colors hover:text-base-content"
+                class="absolute right-1 top-1/2 -translate-y-1/2 flex min-h-[44px] min-w-[44px] items-center justify-center text-base-content/50 transition-colors hover:text-base-content"
                 onclick={() => (showNewPassword = !showNewPassword)}
                 aria-label={showNewPassword ? 'Hide password' : 'Show password'}
               >
@@ -166,7 +166,7 @@
               />
               <button
                 type="button"
-                class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-base-content/50 transition-colors hover:text-base-content"
+                class="absolute right-1 top-1/2 -translate-y-1/2 flex min-h-[44px] min-w-[44px] items-center justify-center text-base-content/50 transition-colors hover:text-base-content"
                 onclick={() => (showConfirmPassword = !showConfirmPassword)}
                 aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
@@ -194,7 +194,7 @@
         <div class="form-control pt-1">
             <button
               type="submit"
-              class="btn btn-primary h-12 w-full rounded-lg text-base font-semibold shadow-md"
+              class="btn btn-primary h-12 w-full text-base font-semibold"
               disabled={isSubmitting}
             >
               {#if isSubmitting}

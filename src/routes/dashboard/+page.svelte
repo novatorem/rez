@@ -174,7 +174,7 @@
 
       await refreshData();
       statusInputText = '';
-      NotificationManager.showSuccess('Status updated successfully');
+      NotificationManager.showSuccess('Status updated.');
     } catch (error) {
       handleDatabaseError(error, 'update status');
     } finally {
@@ -208,7 +208,7 @@
       const friendshipExists = await verifyFriendshipExists(supabase, user.id, friendId);
       if (!friendshipExists) {
         NotificationManager.showError(
-          'No friendship found to remove. The friendship may have already been removed.'
+          "Couldn't remove — they may have already left your friends list."
         );
         return;
       }
@@ -228,7 +228,7 @@
       friendOrderStore.removeFriend(friendId);
 
       await refreshData();
-      NotificationManager.showSuccess('Friend removed successfully');
+      NotificationManager.showSuccess('Friend removed.');
     } catch (error) {
       handleDatabaseError(error, 'remove friend');
     } finally {
@@ -244,7 +244,7 @@
   };
 </script>
 
-<div class="flex flex-col gap-4 p-4">
+<div class="container mx-auto flex max-w-2xl flex-col gap-4 p-4">
   {#if !isReady}
     <StatusSectionSkeleton />
     <LoadingSkeletons />

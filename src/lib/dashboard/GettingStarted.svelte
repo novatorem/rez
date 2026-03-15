@@ -71,7 +71,7 @@
                   ? 'text-base-content/50 line-through'
                   : 'text-base-content'}"
               >
-                Set your status - let friends know what you're up to
+                Set your status
               </span>
             </li>
 
@@ -100,14 +100,14 @@
                   ? 'text-base-content/50 line-through'
                   : 'text-base-content'}"
               >
-                Add a friend - search by username below
+                Add a friend
               </span>
             </li>
           </ul>
         </div>
 
         <button
-          class="text-base-content/40 hover:text-base-content/70 flex-shrink-0 transition-colors"
+          class="text-base-content/40 hover:text-base-content/70 -mr-1 -mt-1 flex min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded-full transition-colors"
           onclick={dismiss}
           aria-label="Dismiss getting started guide"
         >
