@@ -103,7 +103,7 @@ CREATE INDEX IF NOT EXISTS idx_friend_requests_requester_created
 
 -- Rate limiting: restrict inserts to a maximum of 20 requests per user per hour.
 -- This is a RESTRICTIVE policy, which means it is ANDed with the permissive INSERT
--- policy above rather than ORed — both must pass for an insert to succeed.
+-- policy above rather than ORed - both must pass for an insert to succeed.
 -- The composite index on (requester_id, created_at) keeps this subquery fast.
 DO $$
 BEGIN
