@@ -1,4 +1,4 @@
-<footer class="footer bg-neutral text-neutral-content items-center p-4 sm:footer-horizontal">
+<footer class="footer footer-horizontal bg-neutral text-neutral-content items-center p-4">
   <aside class="grid-flow-col items-center">
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
       ><path

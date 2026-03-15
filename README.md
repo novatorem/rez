@@ -7,35 +7,35 @@ A real-time social status app where you can share what you're up to with your fr
 ## Table of Contents
 
 - [Rez (Rezonate)](#rez-rezonate)
-	- [Table of Contents](#table-of-contents)
-	- [Overview](#overview)
-	- [Features](#features)
-	- [Tech Stack](#tech-stack)
-	- [Getting Started](#getting-started)
-		- [Prerequisites](#prerequisites)
-		- [Environment Variables](#environment-variables)
-		- [Installation](#installation)
-		- [Development](#development)
-		- [Building for Production](#building-for-production)
-	- [Infrastructure Setup (Supabase)](#infrastructure-setup-supabase)
-		- [Create a Supabase Project](#create-a-supabase-project)
-		- [Run the SQL Setup](#run-the-sql-setup)
-		- [Enable Realtime](#enable-realtime)
-		- [Auth Configuration](#auth-configuration)
-	- [Architecture](#architecture)
-		- [Project Structure](#project-structure)
-		- [Data Flow](#data-flow)
-		- [Database Schema](#database-schema)
-		- [Key Design Decisions](#key-design-decisions)
-	- [Security](#security)
-		- [Authentication \& Session Management](#authentication--session-management)
-		- [Row Level Security](#row-level-security)
-		- [Cookie Security](#cookie-security)
-		- [Database Functions](#database-functions)
-		- [Development Mode Caveats](#development-mode-caveats)
-	- [Real-time Updates](#real-time-updates)
-	- [Local Storage Usage](#local-storage-usage)
-	- [Potential Improvements](#potential-improvements)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Features](#features)
+  - [Tech Stack](#tech-stack)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Environment Variables](#environment-variables)
+    - [Installation](#installation)
+    - [Development](#development)
+    - [Building for Production](#building-for-production)
+  - [Infrastructure Setup (Supabase)](#infrastructure-setup-supabase)
+    - [Create a Supabase Project](#create-a-supabase-project)
+    - [Run the SQL Setup](#run-the-sql-setup)
+    - [Enable Realtime](#enable-realtime)
+    - [Auth Configuration](#auth-configuration)
+  - [Architecture](#architecture)
+    - [Project Structure](#project-structure)
+    - [Data Flow](#data-flow)
+    - [Database Schema](#database-schema)
+    - [Key Design Decisions](#key-design-decisions)
+  - [Security](#security)
+    - [Authentication \& Session Management](#authentication--session-management)
+    - [Row Level Security](#row-level-security)
+    - [Cookie Security](#cookie-security)
+    - [Database Functions](#database-functions)
+    - [Development Mode Caveats](#development-mode-caveats)
+  - [Real-time Updates](#real-time-updates)
+  - [Local Storage Usage](#local-storage-usage)
+  - [Potential Improvements](#potential-improvements)
 
 ---
 
@@ -54,38 +54,38 @@ Rez lets you:
 
 ## Features
 
-| Feature | Details |
-|---|---|
-| Authentication | Email/password with email confirmation, password reset, email change |
-| Status updates | 42-character limit, with quick-status presets |
-| Friend requests | Send by username, accept/reject/cancel |
-| Real-time sync | Supabase Realtime (optional, gracefully degrades) |
-| Friend ordering | Drag-and-drop reorder, persisted in `localStorage` |
-| Themes | 35 built-in DaisyUI themes, cookie-persisted |
-| PWA | Installable on mobile and desktop via web app manifest |
-| Profile | Username (3–20 chars) + optional display name (up to 50 chars) |
-| Data export | Download all your data as JSON |
-| Account deletion | Password-confirmed, cascades all data including auth user |
-| Debug panel | Accessible on iOS, on error, or via `localStorage` flag |
+| Feature          | Details                                                              |
+| ---------------- | -------------------------------------------------------------------- |
+| Authentication   | Email/password with email confirmation, password reset, email change |
+| Status updates   | 42-character limit, with quick-status presets                        |
+| Friend requests  | Send by username, accept/reject/cancel                               |
+| Real-time sync   | Supabase Realtime (optional, gracefully degrades)                    |
+| Friend ordering  | Drag-and-drop reorder, persisted in `localStorage`                   |
+| Themes           | 35 built-in DaisyUI themes, cookie-persisted                         |
+| PWA              | Installable on mobile and desktop via web app manifest               |
+| Profile          | Username (3–20 chars) + optional display name (up to 50 chars)       |
+| Data export      | Download all your data as JSON                                       |
+| Account deletion | Password-confirmed, cascades all data including auth user            |
+| Debug panel      | Accessible on iOS, on error, or via `localStorage` flag              |
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | [SvelteKit 2](https://kit.svelte.dev/) with [Svelte 5](https://svelte.dev/) |
-| Language | TypeScript |
-| Styling | [Tailwind CSS v4](https://tailwindcss.com/) + [DaisyUI v5](https://daisyui.com/) |
-| Backend / DB | [Supabase](https://supabase.com/) (PostgreSQL + Auth + Realtime) |
-| Auth integration | `@supabase/ssr` |
-| Avatars | `svelte-boring-avatars` (deterministic from user ID) |
-| Theme switching | `theme-change` |
-| Build tool | Vite 7 |
-| Testing | [Vitest](https://vitest.dev/) |
-| Linting | ESLint 9 + `eslint-plugin-svelte` |
-| Formatting | Prettier + `prettier-plugin-svelte` + `prettier-plugin-tailwindcss` |
-| CI | GitHub Actions (check, lint, test) |
+| Layer            | Technology                                                                       |
+| ---------------- | -------------------------------------------------------------------------------- |
+| Framework        | [SvelteKit 2](https://kit.svelte.dev/) with [Svelte 5](https://svelte.dev/)      |
+| Language         | TypeScript                                                                       |
+| Styling          | [Tailwind CSS v4](https://tailwindcss.com/) + [DaisyUI v5](https://daisyui.com/) |
+| Backend / DB     | [Supabase](https://supabase.com/) (PostgreSQL + Auth + Realtime)                 |
+| Auth integration | `@supabase/ssr`                                                                  |
+| Avatars          | `svelte-boring-avatars` (deterministic from user ID)                             |
+| Theme switching  | `theme-change`                                                                   |
+| Build tool       | Vite 7                                                                           |
+| Testing          | [Vitest](https://vitest.dev/)                                                    |
+| Linting          | ESLint 9 + `eslint-plugin-svelte`                                                |
+| Formatting       | Prettier + `prettier-plugin-svelte` + `prettier-plugin-tailwindcss`              |
+| CI               | GitHub Actions (check, lint, test)                                               |
 
 ---
 
@@ -358,12 +358,12 @@ Using `@sveltejs/adapter-auto` means the project deploys to any supported platfo
 
 All four public tables have RLS enabled. The policies enforce:
 
-| Table | SELECT | INSERT | UPDATE | DELETE |
-|---|---|---|---|---|
-| `users` | All authenticated users can read | - | Own row only | Own row only |
-| `profiles` | All authenticated users can read | Own row only | Own row only | - |
-| `friends` | Only if `user_id` or `friend_id` matches | Only if `user_id` or `friend_id` matches | - | Only if `user_id` or `friend_id` matches |
-| `friend_requests` | Own rows (as requester or target) | Own as requester (rate-limited) | Own as target | Own as requester or target |
+| Table             | SELECT                                   | INSERT                                   | UPDATE        | DELETE                                   |
+| ----------------- | ---------------------------------------- | ---------------------------------------- | ------------- | ---------------------------------------- |
+| `users`           | All authenticated users can read         | -                                        | Own row only  | Own row only                             |
+| `profiles`        | All authenticated users can read         | Own row only                             | Own row only  | -                                        |
+| `friends`         | Only if `user_id` or `friend_id` matches | Only if `user_id` or `friend_id` matches | -             | Only if `user_id` or `friend_id` matches |
+| `friend_requests` | Own rows (as requester or target)        | Own as requester (rate-limited)          | Own as target | Own as requester or target               |
 
 The read-all policy on `users` and `profiles` is intentional - users need to search for others by username and view friends' statuses.
 
@@ -397,15 +397,15 @@ In development (`NODE_ENV === 'development'`), TLS certificate verification is d
 
 The `RealtimeSubscriptionManager` class (in `src/lib/realtime/subscriptions.ts`) opens channels per logged-in user:
 
-| Channel | Table | Filter |
-|---|---|---|
-| `friend_requests_from_{userId}` | `friend_requests` | Server-side: `requester_id=eq.{userId}` |
-| `friend_requests_to_{userId}` | `friend_requests` | Server-side: `target_id=eq.{userId}` |
-| `friends_user_{userId}` | `friends` | Server-side: `user_id=eq.{userId}` |
-| `friends_friend_{userId}` | `friends` | Server-side: `friend_id=eq.{userId}` |
-| `profiles_friends_{userId}` | `profiles` | Server-side: `id=in.(friendId1,friendId2,...)` |
+| Channel                         | Table             | Filter                                         |
+| ------------------------------- | ----------------- | ---------------------------------------------- |
+| `friend_requests_from_{userId}` | `friend_requests` | Server-side: `requester_id=eq.{userId}`        |
+| `friend_requests_to_{userId}`   | `friend_requests` | Server-side: `target_id=eq.{userId}`           |
+| `friends_user_{userId}`         | `friends`         | Server-side: `user_id=eq.{userId}`             |
+| `friends_friend_{userId}`       | `friends`         | Server-side: `friend_id=eq.{userId}`           |
+| `profiles_friends_{userId}`     | `profiles`        | Server-side: `id=in.(friendId1,friendId2,...)` |
 
-Each table uses two channels because Supabase Realtime only supports a single `eq` filter per channel, and the current user can appear in either column. The profiles channel is scoped to the user's current friend list via an `in` filter and is recreated whenever the friend list changes — only `UPDATE` events for friends' rows are delivered.
+Each table uses two channels because Supabase Realtime only supports a single `eq` filter per channel, and the current user can appear in either column. The profiles channel is scoped to the user's current friend list via an `in` filter and is recreated whenever the friend list changes - only `UPDATE` events for friends' rows are delivered.
 
 To enable Realtime, tables must be added to Supabase's publication:
 
@@ -421,11 +421,11 @@ If Realtime is not configured, the subscriptions fail silently and the app works
 
 ## Local Storage Usage
 
-| Key | Content | Purpose |
-|---|---|---|
-| `friend-order` | `string[]` (friend UUID array) | Persists drag-and-drop friend order |
-| `rez_quick_statuses` | `QuickStatus[]` (JSON) | Persists user-defined quick status presets |
-| `debug-mode` | `"true"` / `"false"` | Controls debug panel visibility |
+| Key                  | Content                        | Purpose                                    |
+| -------------------- | ------------------------------ | ------------------------------------------ |
+| `friend-order`       | `string[]` (friend UUID array) | Persists drag-and-drop friend order        |
+| `rez_quick_statuses` | `QuickStatus[]` (JSON)         | Persists user-defined quick status presets |
+| `debug-mode`         | `"true"` / `"false"`           | Controls debug panel visibility            |
 
 These are purely client-side and device-specific - they are not synced to the database. Clearing browser storage resets these to defaults.
 

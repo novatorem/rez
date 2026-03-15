@@ -25,14 +25,12 @@ export const formatStatusUpdatedAtTooltip = (updatedAt: string | null): string =
   if (!updatedAt) return '';
 
   const date = new Date(updatedAt);
+  const now = new Date();
   return date.toLocaleString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
+    month: 'short',
     day: 'numeric',
+    ...(date.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}),
     hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-    timeZoneName: 'short'
+    minute: '2-digit'
   });
 };

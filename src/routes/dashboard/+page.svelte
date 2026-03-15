@@ -1,8 +1,6 @@
 <script lang="ts">
   import DeleteFriendModal from '$lib/friends/components/DeleteModal.svelte';
   import GettingStarted from '$lib/dashboard/GettingStarted.svelte';
-  import FriendRequestsSection from '$lib/friends/components/Requests.svelte';
-  import FriendRequestsSectionSkeleton from '$lib/friends/components/RequestsSkeleton.svelte';
   import FriendsList from '$lib/friends/components/List.svelte';
   import LoadingSkeletons from '$lib/friends/components/ListSkeleton.svelte';
   import StatusSection from '$lib/status/components/Section.svelte';
@@ -24,8 +22,6 @@
   let hasLoadedData = false;
 
   let currentStatus = $derived(dashboardData?.currentStatus || '');
-  let friendRequests = $derived(dashboardData?.friendRequests || []);
-  let sentFriendRequests = $derived(dashboardData?.sentFriendRequests || []);
   let rawFriends = $derived(dashboardData?.friends || []);
   let friends = $derived(friendOrderStore.getOrderedFriends(rawFriends));
   let quickStatuses = $derived(dashboardData?.quickStatuses || []);
@@ -38,7 +34,6 @@
   let friendToDelete = $state<{ id: string; name: string } | null>(null);
 
   let subscriptionManager: RealtimeSubscriptionManager | null = null;
-  let requestRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   let fullRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   let subscribedUserId: string | null = null;
 
@@ -121,29 +116,6 @@
     dashboardData = { ...dashboardData };
   };
 
-  const debouncedRequestRefresh = () => {
-    if (requestRefreshTimer) clearTimeout(requestRefreshTimer);
-    requestRefreshTimer = setTimeout(async () => {
-      if (!user || !supabase) return;
-      try {
-        const loader = new DashboardDataLoader(supabase, user.id);
-        const [incoming, sent] = await Promise.all([
-          loader.loadFriendRequests(),
-          loader.loadSentFriendRequests()
-        ]);
-        if (dashboardData) {
-          dashboardData = {
-            ...dashboardData,
-            friendRequests: incoming,
-            sentFriendRequests: sent
-          };
-        }
-      } catch (error) {
-        handleDatabaseError(error, 'refresh friend requests');
-      }
-    }, 300);
-  };
-
   const debouncedFullRefresh = () => {
     if (fullRefreshTimer) clearTimeout(fullRefreshTimer);
     fullRefreshTimer = setTimeout(() => refreshData(), 300);
@@ -155,7 +127,6 @@
     try {
       const manager = new RealtimeSubscriptionManager(supabase, user.id);
       manager.subscribe({
-        onFriendRequestChange: debouncedRequestRefresh,
         onFriendshipChange: debouncedFullRefresh,
         onStatusChange: handleRealtimeStatusChange
       });
@@ -166,10 +137,6 @@
   };
 
   const cleanupRealtimeSubscriptions = () => {
-    if (requestRefreshTimer) {
-      clearTimeout(requestRefreshTimer);
-      requestRefreshTimer = null;
-    }
     if (fullRefreshTimer) {
       clearTimeout(fullRefreshTimer);
       fullRefreshTimer = null;
@@ -281,7 +248,6 @@
   {#if !isReady}
     <StatusSectionSkeleton />
     <LoadingSkeletons />
-    <FriendRequestsSectionSkeleton />
   {:else}
     <GettingStarted hasStatus={!!currentStatus} hasFriends={friends.length > 0} />
 
@@ -304,15 +270,6 @@
       />
     </div>
 
-    <div class="animate-fade-in-up" style="animation-delay: 160ms">
-      <FriendRequestsSection
-        {friendRequests}
-        {sentFriendRequests}
-        {supabase}
-        {user}
-        onDataRefresh={refreshData}
-      />
-    </div>
   {/if}
 </div>
 

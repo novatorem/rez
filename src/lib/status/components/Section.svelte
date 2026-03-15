@@ -82,13 +82,15 @@
 
     {#if quickStatuses.length > 0}
       <form class="filter flex-wrap mb-4">
-        <input
-          class="btn btn-square sm:btn-sm"
-          type="reset"
-          value="×"
-          onclick={resetQuickStatus}
-          title="Clear selection"
-        />
+        {#if selectedQuickStatusId}
+          <input
+            class="btn btn-square sm:btn-sm"
+            type="reset"
+            value="×"
+            onclick={resetQuickStatus}
+            title="Clear selection"
+          />
+        {/if}
         {#each quickStatuses as quickStatus (quickStatus.id)}
           <input
             class="btn sm:btn-sm"

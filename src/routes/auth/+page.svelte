@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { applyAction, enhance } from '$app/forms';
   import { dev } from '$app/environment';
+  import { applyAction, enhance } from '$app/forms';
   import DebugPanel from '$lib/ui/DebugPanel.svelte';
 
   type AuthView = 'login' | 'signup' | 'forgotPassword';
@@ -38,7 +38,9 @@
       ? 'Please enter a valid email address.'
       : null
   );
-  let loginEmailValid = $derived(loginEmailTouched && loginEmail.length > 0 && isValidEmail(loginEmail));
+  let loginEmailValid = $derived(
+    loginEmailTouched && loginEmail.length > 0 && isValidEmail(loginEmail)
+  );
 
   let loginPasswordError = $derived(
     loginPasswordTouched && loginPassword.length > 0 && loginPassword.length < MIN_PASSWORD_LENGTH
@@ -59,7 +61,9 @@
   );
 
   let signupPasswordError = $derived(
-    signupPasswordTouched && signupPassword.length > 0 && signupPassword.length < MIN_PASSWORD_LENGTH
+    signupPasswordTouched &&
+      signupPassword.length > 0 &&
+      signupPassword.length < MIN_PASSWORD_LENGTH
       ? `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`
       : null
   );
@@ -88,27 +92,34 @@
 </script>
 
 <div class="flex grow">
-
   <!-- Form panel -->
-  <div class="flex flex-1 flex-col items-center justify-center overflow-y-auto bg-base-100 p-6 py-10 sm:p-10">
-
+  <div
+    class="bg-base-100 flex flex-1 flex-col items-center justify-center overflow-y-auto p-6 py-10 sm:p-10"
+  >
     <!-- Brand eyebrow -->
     <div class="mb-8 w-full max-w-sm">
-      <p class="text-primary text-xs font-bold uppercase tracking-[0.2em]">Rezonate</p>
+      <p class="text-primary text-xs font-bold tracking-[0.2em] uppercase">Rezonate</p>
     </div>
 
     {#key view}
       <div class="animate-fade-in-up w-full max-w-sm" style="animation-duration: 0.35s">
-
         {#if view === 'login'}
-          <h1 class="text-base-content mb-7 text-3xl font-bold tracking-tight">
-            Welcome back.
-          </h1>
+          <h1 class="text-base-content mb-7 text-3xl font-bold tracking-tight">Welcome back.</h1>
 
           {#if loginError}
             <div class="alert alert-error animate-alert-in mb-5" role="alert">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 shrink-0 stroke-current"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <div class="flex-1">
                 <span class="text-base font-medium">{loginError}</span>
@@ -116,14 +127,18 @@
                   <div class="mt-2">
                     <button
                       class="btn btn-sm btn-outline"
-                      onclick={() => { if (debugPanel) debugPanel.openPanel(); }}
+                      onclick={() => {
+                        if (debugPanel) debugPanel.openPanel();
+                      }}
                     >
                       View Debug Info
                     </button>
                   </div>
                 {/if}
               </div>
-              <button class="btn btn-sm btn-ghost" onclick={clearErrors} aria-label="Dismiss error">✕</button>
+              <button class="btn btn-sm btn-ghost" onclick={clearErrors} aria-label="Dismiss error"
+                >✕</button
+              >
             </div>
           {/if}
 
@@ -135,7 +150,7 @@
               return async ({ result }) => {
                 if (result.type === 'failure' && result.data) {
                   const data = result.data as { error?: string; errorCode?: string };
-                  loginError = data.error || "Couldn't sign in — check your email and password.";
+                  loginError = data.error || "Couldn't sign in - check your email and password.";
                   if (debugPanel) {
                     debugPanel.addDebugLog('error', 'Login form error', {
                       errorCode: data.errorCode
@@ -149,7 +164,9 @@
           >
             <div class="form-control">
               <label class="label pb-1.5" for="login-email">
-                <span class="label-text text-base font-semibold text-base-content">Email address</span>
+                <span class="label-text text-base-content text-base font-semibold"
+                  >Email address</span
+                >
               </label>
               <div class="relative">
                 <input
@@ -164,19 +181,47 @@
                   aria-invalid={loginEmailError ? 'true' : undefined}
                   bind:value={loginEmail}
                   onblur={() => (loginEmailTouched = true)}
-                  class="input input-bordered h-12 w-full px-4 text-base {loginEmailError ? 'input-error' : ''} {loginEmailValid ? 'input-success' : ''}"
+                  class="input input-bordered h-12 w-full px-4 text-base {loginEmailError
+                    ? 'input-error'
+                    : ''} {loginEmailValid ? 'input-success' : ''}"
                 />
                 {#if loginEmailValid}
-                  <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-success" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                  <span
+                    class="text-success pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clip-rule="evenodd"
+                      />
                     </svg>
                   </span>
                 {/if}
               </div>
-              <div id="login-email-error" class="mt-1.5 flex items-center gap-1.5 text-error" class:invisible={!loginEmailError} role={loginEmailError ? 'alert' : undefined}>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              <div
+                id="login-email-error"
+                class="text-error mt-1.5 flex items-center gap-1.5"
+                class:invisible={!loginEmailError}
+                role={loginEmailError ? 'alert' : undefined}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4 shrink-0"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clip-rule="evenodd"
+                  />
                 </svg>
                 <span class="text-sm font-medium">{loginEmailError ?? '\u00A0'}</span>
               </div>
@@ -184,7 +229,7 @@
 
             <div class="form-control">
               <label class="label pb-1.5" for="login-password">
-                <span class="label-text text-base font-semibold text-base-content">Password</span>
+                <span class="label-text text-base-content text-base font-semibold">Password</span>
               </label>
               <div class="relative">
                 <input
@@ -199,30 +244,66 @@
                   aria-invalid={loginPasswordError ? 'true' : undefined}
                   bind:value={loginPassword}
                   onblur={() => (loginPasswordTouched = true)}
-                  class="input input-bordered h-12 w-full px-4 pr-12 text-base {loginPasswordError ? 'input-error' : ''} {loginPasswordValid ? 'input-success' : ''}"
+                  class="input input-bordered h-12 w-full px-4 pr-12 text-base {loginPasswordError
+                    ? 'input-error'
+                    : ''} {loginPasswordValid ? 'input-success' : ''}"
                 />
                 <button
                   type="button"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-base-content/50 transition-colors hover:text-base-content"
+                  class="text-base-content/50 hover:text-base-content absolute top-1/2 right-3 -translate-y-1/2 p-1 transition-colors"
                   onclick={() => (showLoginPassword = !showLoginPassword)}
                   aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
                 >
                   {#if showLoginPassword}
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"
+                      />
                       <line x1="1" y1="1" x2="23" y2="23" />
                     </svg>
                   {:else}
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                       <circle cx="12" cy="12" r="3" />
                     </svg>
                   {/if}
                 </button>
               </div>
-              <div id="login-password-error" class="mt-1.5 flex items-center gap-1.5 text-error" class:invisible={!loginPasswordError} role={loginPasswordError ? 'alert' : undefined}>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              <div
+                id="login-password-error"
+                class="text-error mt-1.5 flex items-center gap-1.5"
+                class:invisible={!loginPasswordError}
+                role={loginPasswordError ? 'alert' : undefined}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4 shrink-0"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clip-rule="evenodd"
+                  />
                 </svg>
                 <span class="text-sm font-medium">{loginPasswordError ?? '\u00A0'}</span>
               </div>
@@ -245,7 +326,7 @@
             </div>
           </form>
 
-          <p class="mt-6 text-sm text-base-content/60">
+          <p class="text-base-content/60 mt-6 text-sm">
             New to Rez?
             <button
               class="link link-primary inline-flex min-h-[44px] items-center font-semibold"
@@ -254,16 +335,23 @@
               Create an account
             </button>
           </p>
-
         {:else if view === 'signup'}
-          <h1 class="text-base-content mb-7 text-3xl font-bold tracking-tight">
-            Join Rez.
-          </h1>
+          <h1 class="text-base-content mb-7 text-3xl font-bold tracking-tight">Join Rez.</h1>
 
           {#if signupError}
             <div class="alert alert-error animate-alert-in mb-5" role="alert">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 shrink-0 stroke-current"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <div class="flex-1">
                 <span class="text-base font-medium">{signupError}</span>
@@ -271,24 +359,42 @@
                   <div class="mt-2">
                     <button
                       class="btn btn-sm btn-outline"
-                      onclick={() => { if (debugPanel) debugPanel.openPanel(); }}
+                      onclick={() => {
+                        if (debugPanel) debugPanel.openPanel();
+                      }}
                     >
                       View Debug Info
                     </button>
                   </div>
                 {/if}
               </div>
-              <button class="btn btn-sm btn-ghost" onclick={clearErrors} aria-label="Dismiss error">✕</button>
+              <button class="btn btn-sm btn-ghost" onclick={clearErrors} aria-label="Dismiss error"
+                >✕</button
+              >
             </div>
           {/if}
 
           {#if signupSuccess}
             <div class="alert alert-success animate-alert-in mb-5" role="alert">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 shrink-0 stroke-current"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <span class="text-base">{signupSuccess}</span>
-              <button class="btn btn-sm btn-ghost" onclick={clearErrors} aria-label="Dismiss message">✕</button>
+              <button
+                class="btn btn-sm btn-ghost"
+                onclick={clearErrors}
+                aria-label="Dismiss message">✕</button
+              >
             </div>
           {/if}
 
@@ -305,7 +411,7 @@
                     errorName?: string;
                     isIOS?: boolean;
                   };
-                  signupError = data.error || "Couldn't create your account — please try again.";
+                  signupError = data.error || "Couldn't create your account - please try again.";
                   if (debugPanel) {
                     debugPanel.addDebugLog('error', 'Signup form error', data);
                   }
@@ -326,7 +432,9 @@
           >
             <div class="form-control">
               <label class="label pb-1.5" for="signup-email">
-                <span class="label-text text-base font-semibold text-base-content">Email address</span>
+                <span class="label-text text-base-content text-base font-semibold"
+                  >Email address</span
+                >
               </label>
               <div class="relative">
                 <input
@@ -341,19 +449,47 @@
                   aria-invalid={signupEmailError ? 'true' : undefined}
                   bind:value={signupEmail}
                   onblur={() => (signupEmailTouched = true)}
-                  class="input input-bordered h-12 w-full px-4 text-base {signupEmailError ? 'input-error' : ''} {signupEmailValid ? 'input-success' : ''}"
+                  class="input input-bordered h-12 w-full px-4 text-base {signupEmailError
+                    ? 'input-error'
+                    : ''} {signupEmailValid ? 'input-success' : ''}"
                 />
                 {#if signupEmailValid}
-                  <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-success" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                  <span
+                    class="text-success pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clip-rule="evenodd"
+                      />
                     </svg>
                   </span>
                 {/if}
               </div>
-              <div id="signup-email-error" class="mt-1.5 flex items-center gap-1.5 text-error" class:invisible={!signupEmailError} role={signupEmailError ? 'alert' : undefined}>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              <div
+                id="signup-email-error"
+                class="text-error mt-1.5 flex items-center gap-1.5"
+                class:invisible={!signupEmailError}
+                role={signupEmailError ? 'alert' : undefined}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4 shrink-0"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clip-rule="evenodd"
+                  />
                 </svg>
                 <span class="text-sm font-medium">{signupEmailError ?? '\u00A0'}</span>
               </div>
@@ -361,7 +497,7 @@
 
             <div class="form-control">
               <label class="label pb-1.5" for="signup-password">
-                <span class="label-text text-base font-semibold text-base-content">Password</span>
+                <span class="label-text text-base-content text-base font-semibold">Password</span>
               </label>
               <div class="relative">
                 <input
@@ -376,30 +512,66 @@
                   aria-invalid={signupPasswordError ? 'true' : undefined}
                   bind:value={signupPassword}
                   onblur={() => (signupPasswordTouched = true)}
-                  class="input input-bordered h-12 w-full px-4 pr-12 text-base {signupPasswordError ? 'input-error' : ''} {signupPasswordValid ? 'input-success' : ''}"
+                  class="input input-bordered h-12 w-full px-4 pr-12 text-base {signupPasswordError
+                    ? 'input-error'
+                    : ''} {signupPasswordValid ? 'input-success' : ''}"
                 />
                 <button
                   type="button"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-base-content/50 transition-colors hover:text-base-content"
+                  class="text-base-content/50 hover:text-base-content absolute top-1/2 right-3 -translate-y-1/2 p-1 transition-colors"
                   onclick={() => (showSignupPassword = !showSignupPassword)}
                   aria-label={showSignupPassword ? 'Hide password' : 'Show password'}
                 >
                   {#if showSignupPassword}
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"
+                      />
                       <line x1="1" y1="1" x2="23" y2="23" />
                     </svg>
                   {:else}
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                       <circle cx="12" cy="12" r="3" />
                     </svg>
                   {/if}
                 </button>
               </div>
-              <div id="signup-password-error" class="mt-1.5 flex items-center gap-1.5 text-error" class:invisible={!signupPasswordError} role={signupPasswordError ? 'alert' : undefined}>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              <div
+                id="signup-password-error"
+                class="text-error mt-1.5 flex items-center gap-1.5"
+                class:invisible={!signupPasswordError}
+                role={signupPasswordError ? 'alert' : undefined}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4 shrink-0"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clip-rule="evenodd"
+                  />
                 </svg>
                 <span class="text-sm font-medium">{signupPasswordError ?? '\u00A0'}</span>
               </div>
@@ -412,7 +584,7 @@
             </div>
           </form>
 
-          <p class="mt-6 text-sm text-base-content/60">
+          <p class="text-base-content/60 mt-6 text-sm">
             Already have an account?
             <button
               class="link link-primary inline-flex min-h-[44px] items-center font-semibold"
@@ -421,7 +593,6 @@
               Sign in
             </button>
           </p>
-
         {:else if view === 'forgotPassword'}
           <h1 class="text-base-content mb-3 text-3xl font-bold tracking-tight">
             Forgot your password?
@@ -433,8 +604,18 @@
 
           {#if forgotPasswordSuccess}
             <div class="alert alert-success animate-alert-in mb-5" role="alert">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 shrink-0 stroke-current"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <span class="text-base">{forgotPasswordSuccess}</span>
             </div>
@@ -442,8 +623,18 @@
 
           {#if forgotPasswordError}
             <div class="alert alert-error animate-alert-in mb-5" role="alert">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 shrink-0 stroke-current"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <span class="text-base">{forgotPasswordError}</span>
             </div>
@@ -471,7 +662,9 @@
           >
             <div class="form-control">
               <label class="label pb-1.5" for="forgot-email">
-                <span class="label-text text-base font-semibold text-base-content">Email address</span>
+                <span class="label-text text-base-content text-base font-semibold"
+                  >Email address</span
+                >
               </label>
               <input
                 id="forgot-email"
@@ -492,7 +685,7 @@
             </div>
           </form>
 
-          <p class="mt-6 text-sm text-base-content/60">
+          <p class="text-base-content/60 mt-6 text-sm">
             <button
               class="link link-primary inline-flex min-h-[44px] items-center font-semibold"
               onclick={() => switchView('login')}
@@ -501,10 +694,8 @@
             </button>
           </p>
         {/if}
-
       </div>
     {/key}
-
   </div>
 </div>
 

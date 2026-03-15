@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { dev } from '$app/environment';
   import { DashboardDataLoader, type DashboardData } from '$lib/dashboard/loader';
   import { checkUsernameAvailability } from '$lib/profile/api';
   import {
@@ -10,12 +11,11 @@
     validateDisplayName,
     validateUsername
   } from '$lib/profile/validation';
-  import { MAX_STATUS_LENGTH, validateStatus } from '$lib/status/validation';
   import { getQuickStatuses, saveQuickStatuses } from '$lib/status/quick';
+  import { MAX_STATUS_LENGTH, validateStatus } from '$lib/status/validation';
+  import { handleDatabaseError } from '$lib/ui/notifications';
   import ThemeSelect from '$lib/ui/ThemeSelect.svelte';
   import { toastStore } from '$lib/ui/toast';
-  import { handleDatabaseError } from '$lib/ui/notifications';
-  import { dev } from '$app/environment';
   import { onMount } from 'svelte';
 
   let { data } = $props();
@@ -101,7 +101,10 @@
       const dataLoader = new DashboardDataLoader(supabase, session.user.id);
       const exportedData = await dataLoader.exportUserData();
 
-      downloadJsonFile(exportedData, `rez-data-export-${new Date().toISOString().split('T')[0]}.json`);
+      downloadJsonFile(
+        exportedData,
+        `rez-data-export-${new Date().toISOString().split('T')[0]}.json`
+      );
 
       toastStore.success('Data exported successfully!');
     } catch (error) {
@@ -286,7 +289,11 @@
 
     isUpdatingUsername = true;
     try {
-      const isAvailable = await checkUsernameAvailability(supabase, sanitizedUsername, session.user.id);
+      const isAvailable = await checkUsernameAvailability(
+        supabase,
+        sanitizedUsername,
+        session.user.id
+      );
       if (!isAvailable) {
         toastStore.error(ERROR_MESSAGES.USERNAME_TAKEN);
         return;
@@ -347,9 +354,7 @@
 <div class="container mx-auto max-w-4xl px-4 py-8 sm:px-6">
   <header class="mb-12">
     <h1 class="text-base-content mb-3 text-4xl font-bold">Settings</h1>
-    <p class="text-base-content/70 text-lg">
-      Update your profile, security, and appearance.
-    </p>
+    <p class="text-base-content/70 text-lg">Update your profile, security, and appearance.</p>
   </header>
 
   <div class="space-y-12">
@@ -368,25 +373,25 @@
         </h2>
         <div class="space-y-8">
           {#if dev}
-          <div class="space-y-6">
-            <h3 class="text-base-content/80 border-base-300 border-b pb-2 text-lg font-semibold">
-              Account Information
-            </h3>
+            <div class="space-y-6">
+              <h3 class="text-base-content/80 border-base-300 border-b pb-2 text-lg font-semibold">
+                Account Information
+              </h3>
 
-            <div class="form-control min-w-0">
-              <label class="label" for="user-id-input">
-                <span class="label-text font-medium">User ID</span>
-              </label>
-              <input
-                id="user-id-input"
-                type="text"
-                value={session?.user?.id || ''}
-                class="input input-bordered w-full font-mono text-sm"
-                disabled
-                aria-describedby="user-id-help"
-              />
+              <div class="form-control min-w-0">
+                <label class="label" for="user-id-input">
+                  <span class="label-text font-medium">User ID</span>
+                </label>
+                <input
+                  id="user-id-input"
+                  type="text"
+                  value={session?.user?.id || ''}
+                  class="input input-bordered w-full font-mono text-sm"
+                  disabled
+                  aria-describedby="user-id-help"
+                />
+              </div>
             </div>
-          </div>
           {/if}
 
           <div class="space-y-6">
@@ -515,7 +520,8 @@
                         id="username-help"
                         class="label-text-alt text-base-content/60 break-anywhere block w-full max-w-full text-sm leading-relaxed break-words hyphens-auto whitespace-normal sm:text-base"
                       >
-                        3–{MAX_USERNAME_LENGTH} characters. Must start with a letter. Letters, numbers, dots, dashes, and underscores only.
+                        3–{MAX_USERNAME_LENGTH} characters. Must start with a letter. Letters, numbers,
+                        dots, dashes, and underscores only.
                       </span>
                     </div>
                   </div>
@@ -647,7 +653,8 @@
                         id="display-name-help"
                         class="label-text-alt text-base-content/60 break-anywhere block w-full max-w-full text-sm leading-relaxed break-words hyphens-auto whitespace-normal sm:text-base"
                       >
-                        Shown to friends instead of your username. Leave blank to show your username.
+                        Shown to friends instead of your username. Leave blank to show your
+                        username.
                       </span>
                     </div>
                   </div>
@@ -840,7 +847,7 @@
         </h2>
         <div class="space-y-4">
           <p class="text-base-content/70 text-sm">
-            Save statuses you use often — they'll appear as one-tap options on your dashboard.
+            Save statuses you use often - they'll appear as one-tap options on your dashboard.
           </p>
 
           {#if isLoadingData}

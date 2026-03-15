@@ -3,16 +3,16 @@
 </script>
 
 <div class="relative flex grow flex-col items-center justify-center overflow-hidden px-6 py-16">
-  <!-- Single static warmth bloom — barely there, just takes the edge off the flat background -->
+  <!-- Single static warmth bloom - barely there, just takes the edge off the flat background -->
   <div
-    class="pointer-events-none absolute -right-32 -top-32 h-[560px] w-[560px] rounded-full bg-primary/6 blur-3xl"
+    class="bg-primary/6 pointer-events-none absolute -top-32 -right-32 h-[560px] w-[560px] rounded-full blur-3xl"
     aria-hidden="true"
   ></div>
 
   <div class="relative z-10 w-full max-w-md">
     <!-- Eyebrow -->
     <p
-      class="animate-fade-in-up text-primary mb-5 text-xs font-bold uppercase tracking-[0.2em]"
+      class="animate-fade-in-up text-primary mb-5 text-xs font-bold tracking-[0.2em] uppercase"
       style="animation-delay: 0ms"
     >
       Rezonate
@@ -20,7 +20,7 @@
 
     <!-- Hero heading -->
     <h1
-      class="animate-fade-in-up text-base-content mb-3 text-4xl font-bold leading-tight tracking-tight sm:text-5xl"
+      class="animate-fade-in-up text-base-content mb-3 text-4xl leading-tight font-bold tracking-tight sm:text-5xl"
       style="animation-delay: 60ms"
     >
       Know what your<br />close friends<br />
@@ -34,7 +34,7 @@
       Real-time status for the people who matter.
     </p>
 
-    <!-- Example statuses — the product, shown not described -->
+    <!-- Example statuses - the product, shown not described -->
     <div class="animate-fade-in-up mb-9 space-y-2" style="animation-delay: 190ms">
       <div class="bg-base-200 flex items-center gap-3 rounded-2xl px-4 py-3">
         <div
@@ -69,10 +69,7 @@
 
     <!-- CTA -->
     <div class="animate-fade-in-up" style="animation-delay: 300ms">
-      <a
-        href={resolve('/dashboard')}
-        class="btn btn-primary btn-lg w-full sm:w-auto sm:px-10"
-      >
+      <a href={resolve('/dashboard')} class="btn btn-primary btn-lg w-full sm:w-auto sm:px-10">
         Open Rez
         <svg
           xmlns="http://www.w3.org/2000/svg"

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { browser } from '$app/environment';
-  import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
+  import { fly } from 'svelte/transition';
 
   const DISMISSED_KEY = 'rez-onboarding-dismissed';
 
@@ -71,7 +71,7 @@
                   ? 'text-base-content/50 line-through'
                   : 'text-base-content'}"
               >
-                Set your status — let friends know what you're up to
+                Set your status - let friends know what you're up to
               </span>
             </li>
 
@@ -100,7 +100,7 @@
                   ? 'text-base-content/50 line-through'
                   : 'text-base-content'}"
               >
-                Add a friend — search by username below
+                Add a friend - search by username below
               </span>
             </li>
           </ul>

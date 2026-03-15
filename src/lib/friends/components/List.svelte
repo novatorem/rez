@@ -22,7 +22,6 @@
 
   let { friends, deletingFriends, onDeleteFriend, onReorderFriends }: Props = $props();
 
-  let expandedTimestampId = $state<string | null>(null);
 
   let draggedFriend: Friend | null = $state(null);
   let draggedIndex = $state(-1);
@@ -296,31 +295,17 @@
                 <div class="mb-2">
                   {#key friend.status}
                   {#if friend.status}
-                    <div class="animate-status-reveal flex flex-col gap-2 sm:flex-row sm:items-center">
-                      <p class="text-base-content/80 text-sm break-words">
-                        {friend.status}
-                      </p>
+                    <div class="animate-status-reveal flex flex-wrap items-baseline gap-x-2">
+                      <p class="text-base-content/80 text-sm break-words">{friend.status}</p>
                       {#if friend.status_updated_at}
                         <div
-                          class="tooltip tooltip-right md:tooltip-left hidden sm:block"
+                          class="tooltip tooltip-top"
                           data-tip={formatStatusUpdatedAtTooltip(friend.status_updated_at)}
                         >
-                          <span class="text-base-content/50 cursor-help text-xs whitespace-nowrap">
+                          <span class="text-base-content/40 cursor-help text-xs whitespace-nowrap">
                             <RelativeTime timestamp={friend.status_updated_at} />
                           </span>
                         </div>
-
-                        <button
-                          class="text-base-content/50 hover:text-base-content/70 cursor-pointer text-left text-xs whitespace-nowrap transition-colors sm:hidden"
-                          onclick={() => expandedTimestampId = expandedTimestampId === friend.id ? null : friend.id}
-                        >
-                          <RelativeTime timestamp={friend.status_updated_at} />
-                        </button>
-                        {#if expandedTimestampId === friend.id}
-                          <p class="text-base-content/40 mt-1 text-xs sm:hidden">
-                            {formatStatusUpdatedAtTooltip(friend.status_updated_at)}
-                          </p>
-                        {/if}
                       {/if}
                     </div>
                   {:else}

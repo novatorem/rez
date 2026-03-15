@@ -2,6 +2,7 @@
   import type { SupabaseClient } from '@supabase/supabase-js';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
+  import { getHasUnseen } from '$lib/friends/pendingCount.svelte.js';
 
   let { supabase }: { supabase: SupabaseClient | null } = $props();
 
@@ -32,23 +33,11 @@
 
 <nav class="navbar bg-base-200 sticky top-0 z-50 shadow-lg">
   <div class="navbar-start">
-    <a href={resolve('/')} class="btn btn-ghost text-xl normal-case">Home</a>
-  </div>
-  <div class="navbar-center">
-    {#if page.url.pathname !== '/dashboard'}
-      <a href={resolve('/dashboard')} class="btn btn-primary">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-          ><path
-            fill="currentColor"
-            d="M13 8V4q0-.425.288-.712T14 3h6q.425 0 .713.288T21 4v4q0 .425-.288.713T20 9h-6q-.425 0-.712-.288T13 8M3 12V4q0-.425.288-.712T4 3h6q.425 0 .713.288T11 4v8q0 .425-.288.713T10 13H4q-.425 0-.712-.288T3 12m10 8v-8q0-.425.288-.712T14 11h6q.425 0 .713.288T21 12v8q0 .425-.288.713T20 21h-6q-.425 0-.712-.288T13 20M3 20v-4q0-.425.288-.712T4 15h6q.425 0 .713.288T11 16v4q0 .425-.288.713T10 21H4q-.425 0-.712-.288T3 20m2-9h4V5H5zm10 8h4v-6h-4zm0-12h4V5h-4zM5 19h4v-2H5zm4-2"
-          /></svg
-        >
-        Dashboard
-      </a>
-    {/if}
+    <a href={resolve('/dashboard')} class="btn btn-ghost text-primary text-sm font-bold uppercase tracking-[0.2em]">Rez</a>
   </div>
   <div class="navbar-end">
     <div class="dropdown dropdown-end">
+      <div class="indicator">
       <button aria-label="Dropdown menu" tabindex="0" class="btn btn-ghost">
         <svg
           aria-hidden="true"
@@ -65,7 +54,22 @@
           /></svg
         >
       </button>
+      {#if getHasUnseen()}
+        <span class="badge badge-error badge-xs indicator-item" aria-label="New friend request"></span>
+      {/if}
+      </div>
       <ul class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-44 p-2 shadow sm:w-52">
+        <li>
+          <a href={resolve('/dashboard/friends')}>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Friends
+            {#if getHasUnseen()}
+              <span class="badge badge-error badge-xs" aria-label="New friend request"></span>
+            {/if}
+          </a>
+        </li>
         <li>
           <a href={resolve('/dashboard/settings')}>
             <svg

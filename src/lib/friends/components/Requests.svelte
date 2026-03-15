@@ -3,8 +3,8 @@
   import { getDisplayName, handleDatabaseError, NotificationManager } from '$lib/ui/notifications';
   import type { SupabaseClient, User } from '@supabase/supabase-js';
   import Avatar from 'svelte-boring-avatars';
-  import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
+  import { fly } from 'svelte/transition';
 
   interface FriendRequest {
     id: string;
@@ -180,7 +180,6 @@
       }
 
       if (action === 'accept') {
-
         const { data: existingFriendship } = await supabase
           .from('friends')
           .select('id')
@@ -206,7 +205,6 @@
           }
           return;
         }
-
 
         const { error: deleteError } = await supabase
           .from('friend_requests')
@@ -302,7 +300,11 @@
             />
           </label>
         </div>
-        <button class="btn btn-neutral join-item" disabled={isSendingFriendRequest || !canSendRequest} aria-label="Send friend request">
+        <button
+          class="btn btn-neutral join-item"
+          disabled={isSendingFriendRequest || !canSendRequest}
+          aria-label="Send friend request"
+        >
           {#if isSendingFriendRequest}
             <span class="loading loading-spinner loading-sm"></span>
           {:else}
@@ -317,7 +319,7 @@
       </div>
     </form>
     <p class="text-base-content/50 mb-3 text-xs">
-      Ask your friend for their username — they can find it in Settings.
+      Ask your friend for their username - they can find it in Settings.
     </p>
 
     {#if (!friendRequests || friendRequests.length === 0) && (!sentFriendRequests || sentFriendRequests.length === 0)}
