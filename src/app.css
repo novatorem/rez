@@ -1,4 +1,94 @@
 @import 'tailwindcss';
 @plugin "daisyui" {
-	themes: all;
+  themes: all;
+}
+
+/* ── Typography ────────────────────────────────────────────── */
+@theme {
+  --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── Easing tokens ─────────────────────────────────────────── */
+:root {
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Keyframes ─────────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes alertIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes statusReveal {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ── Animation utilities ───────────────────────────────────── */
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s var(--ease-out-expo) both;
+}
+
+.animate-alert-in {
+  animation: alertIn 0.22s var(--ease-out-quart) both;
+}
+
+.animate-status-reveal {
+  animation: statusReveal 0.28s var(--ease-out-quart) both;
+}
+
+.animate-modal-in {
+  animation: modalIn 0.28s var(--ease-out-quart) both;
+}
+
+/* ── Button press micro-interaction ───────────────────────── */
+.btn:not(:disabled):active {
+  transform: scale(0.96);
+  transition: transform 0.08s var(--ease-out-quart) !important;
+}
+
+/* ── Global reduced-motion catch-all ───────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

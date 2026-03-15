@@ -1,15 +1,15 @@
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ depends, locals: { safeGetSession } }) => {
-	depends('supabase:auth');
+  depends('supabase:auth');
 
-	const { session } = await safeGetSession();
+  const { session } = await safeGetSession();
 
-	if (!session) {
-		throw new Error('User not authenticated');
-	}
+  if (!session) {
+    throw new Error('User not authenticated');
+  }
 
-	return {
-		session
-	};
+  return {
+    session
+  };
 };

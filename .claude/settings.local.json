@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(cd \"C:/Projects/rez\" && npm run check 2>&1)",
+      "Bash(cd \"C:/Projects/rez\" && npx svelte-kit sync && npx svelte-check --tsconfig ./tsconfig.json 2>&1)",
+      "Bash(cd \"C:/Projects/rez\" && node_modules/.bin/svelte-kit sync && node_modules/.bin/svelte-check --tsconfig ./tsconfig.json 2>&1)",
+      "Bash(which node:*)",
+      "Bash(tail:*)",
+      "Bash(cd \"C:/Projects/rez\" && node_modules/.bin/svelte-kit sync 2>&1 && node_modules/.bin/svelte-check --tsconfig ./tsconfig.json 2>&1)",
+      "Bash(cd C:/Projects/rez && node_modules/.bin/svelte-kit sync && node_modules/.bin/svelte-check --tsconfig ./tsconfig.json 2>&1)",
+      "Bash(cd C:/Projects/rez && npx --yes npm-check-updates --upgrade 2>&1)",
+      "Bash(cd C:/Projects/rez && npm install 2>&1)",
+      "Bash(cd C:/Projects/rez && npm audit 2>&1)",
+      "Bash(cd C:/Projects/rez && npm run build 2>&1)",
+      "Bash(npm view svelte-boring-avatars versions --json 2>&1 | python3 -c \"import sys,json; vs=json.load\\(sys.stdin\\); print\\('All versions:', vs[-5:]\\)\" && npm view svelte-boring-avatars dist-tags 2>&1)",
+      "Bash(find /c/Projects/rez/src -type f | grep -E \"\\\\.\\(svelte|ts|tsx|js|jsx|css\\)$\" | sort)",
+      "Bash(find /c/Projects/rez -maxdepth 2 -type f -name \"*.md\" -o -name \"*.json\" -o -name \"*.config.*\" 2>/dev/null | head -20)",
+      "Bash(ls -la /c/Projects/rez/*.config.* 2>/dev/null)",
+      "Bash(find /c/Projects/rez -maxdepth 1 -type f -name \"*config*\" | grep -E \"\\\\.\\(ts|js|mjs|cjs\\)$\")",
+      "Bash(find /c/Projects/rez/src/routes -type f -name \"*.svelte\" | xargs ls -la)"
+    ]
+  },
+  "enabledPlugins": {
+    "impeccable@impeccable": true,
+    "frontend-design@claude-plugins-official": true
+  }
+}

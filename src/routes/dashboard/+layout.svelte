@@ -1,12 +1,12 @@
 <script>
-	import Navigation from '$lib/ui/Navigation.svelte';
+  import Navigation from '$lib/ui/Navigation.svelte';
 
-	let { data, children } = $props();
-	let { supabase } = $derived(data);
+  let { data, children } = $props();
+  let { supabase } = $derived(data);
 </script>
 
 <Navigation {supabase} />
 
 <main>
-	{@render children()}
+  {@render children()}
 </main>
