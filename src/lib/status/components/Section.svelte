@@ -2,6 +2,8 @@
   import { MAX_STATUS_LENGTH } from '$lib/status/validation';
   import type { QuickStatus } from '$lib/status/quick';
   import type { EventHandler } from 'svelte/elements';
+  import { fly } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
 
   interface Props {
     currentStatus: string;
@@ -20,7 +22,25 @@
   }: Props = $props();
 
   let selectedQuickStatusId = $state<string>('');
+  let showQuickStatuses = $state(false);
+  let showSuccess = $state(false);
+  let successTimer: ReturnType<typeof setTimeout> | null = null;
+
   let statusCharacterCount = $derived(statusInputText?.length ?? 0);
+  // Show counter only when within 14 chars of the limit — enough notice, no noise otherwise
+  let showCounter = $derived(statusCharacterCount >= MAX_STATUS_LENGTH - 14);
+  let charsRemaining = $derived(MAX_STATUS_LENGTH - statusCharacterCount);
+
+  // Track currentStatus changes to flash a success checkmark on the submit button
+  let prevStatus = currentStatus;
+  $effect(() => {
+    if (currentStatus !== prevStatus) {
+      prevStatus = currentStatus;
+      if (successTimer) clearTimeout(successTimer);
+      showSuccess = true;
+      successTimer = setTimeout(() => { showSuccess = false; }, 700);
+    }
+  });
 
   const handleQuickStatusChange = (statusText: string, statusId: string) => {
     statusInputText = statusText;
@@ -34,14 +54,38 @@
 
 <div class="card bg-base-200">
   <div class="card-body">
-    <h2 class="card-title">Right now</h2>
+    <div class="mb-3 flex items-center justify-between">
+      <h2 class="card-title">Right now</h2>
+      {#if quickStatuses.length > 0}
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs gap-1 text-base-content/40 hover:text-base-content/60"
+          onclick={() => { showQuickStatuses = !showQuickStatuses; }}
+          aria-expanded={showQuickStatuses}
+          aria-label={showQuickStatuses ? 'Hide quick statuses' : 'Show quick statuses'}
+        >
+          <span>Quick</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-3 w-3 transition-transform duration-200 {showQuickStatuses ? 'rotate-180' : ''}"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          ><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+      {/if}
+    </div>
 
-    <form onsubmit={onStatusUpdate} class="mb-4">
+    <form onsubmit={onStatusUpdate}>
       <div class="join w-full">
-        <div class="w-full">
+        <div class="relative w-full">
           <input
             type="text"
-            class="input join-item w-full {statusCharacterCount > MAX_STATUS_LENGTH
+            class="input join-item w-full pr-9 {statusCharacterCount > MAX_STATUS_LENGTH
               ? 'input-error'
               : ''}"
             placeholder="What are you up to?"
@@ -49,10 +93,36 @@
             maxlength={MAX_STATUS_LENGTH}
             required
           />
+          {#if showCounter}
+            <span
+              transition:fly={{ x: 4, duration: 140, easing: cubicOut }}
+              class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 select-none text-xs tabular-nums {charsRemaining < 0
+                ? 'text-error'
+                : 'text-base-content/35'}"
+            >{charsRemaining}</span>
+          {/if}
         </div>
-        <button class="btn btn-primary join-item" disabled={isUpdatingStatus} aria-label="Update status">
+        <button
+          class="btn btn-primary join-item"
+          disabled={isUpdatingStatus}
+          aria-label="Update status"
+        >
           {#if isUpdatingStatus}
             <span class="loading loading-spinner loading-sm"></span>
+          {:else if showSuccess}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="animate-status-reveal"
+              aria-hidden="true"
+            ><path d="M20 6L9 17l-5-5" /></svg>
           {:else}
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
               ><g
@@ -73,10 +143,14 @@
           {/if}
         </button>
       </div>
+
     </form>
 
-    {#if quickStatuses.length > 0}
-      <form class="filter flex-wrap mb-4">
+    {#if showQuickStatuses && quickStatuses.length > 0}
+      <form
+        transition:fly={{ y: 8, duration: 180, easing: cubicOut }}
+        class="filter mt-4 flex-wrap"
+      >
         {#if selectedQuickStatusId}
           <input
             class="btn btn-square sm:btn-sm"
@@ -102,7 +176,7 @@
 
     {#if currentStatus}
       {#key currentStatus}
-        <div class="bg-base-300 animate-status-reveal rounded-lg p-3">
+        <div class="bg-base-300 animate-status-reveal mt-4 rounded-lg p-3">
           <p class="text-lg break-words">{currentStatus}</p>
         </div>
       {/key}

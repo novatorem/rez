@@ -4,6 +4,9 @@
   import { getDisplayName } from '$lib/ui/notifications';
   import RelativeTime from '$lib/ui/RelativeTime.svelte';
   import Avatar from 'svelte-boring-avatars';
+  import { fly, scale } from 'svelte/transition';
+  import { flip } from 'svelte/animate';
+  import { cubicOut } from 'svelte/easing';
 
   interface Friend {
     id: string;
@@ -23,6 +26,9 @@
   let { friends, deletingFriends, onDeleteFriend, onReorderFriends }: Props = $props();
 
 
+  let lastDroppedId: string | null = $state(null);
+  let lastDroppedTimer: ReturnType<typeof setTimeout> | null = null;
+
   let draggedFriend: Friend | null = $state(null);
   let draggedIndex = $state(-1);
   let dropGapIndex = $state(-1);
@@ -32,9 +38,39 @@
   let touchStartY = 0;
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Cached item rects — populated at drag start to avoid repeated DOM queries during move
+  let cachedItemRects: { top: number; bottom: number; height: number }[] = [];
+  let touchMoveRafId: number | null = null;
+  let pendingTouchY: number | null = null;
+
   const isTouch = browser && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
+  function cacheTouchRects() {
+    if (!containerRef) return;
+    const els = containerRef.querySelectorAll<HTMLElement>('.draggable-item');
+    cachedItemRects = Array.from(els).map((el) => {
+      const { top, bottom, height } = el.getBoundingClientRect();
+      return { top, bottom, height };
+    });
+  }
+
+  function updateDropGapFromY(currentY: number) {
+    let gap = cachedItemRects.length;
+    for (let i = 0; i < cachedItemRects.length; i++) {
+      const { top, bottom, height } = cachedItemRects[i];
+      if (currentY <= top) { gap = i; break; }
+      if (currentY <= bottom) { gap = currentY < top + height / 2 ? i : i + 1; break; }
+    }
+    dropGapIndex = Math.max(0, Math.min(gap, cachedItemRects.length));
+  }
+
   function resetDragState() {
+    if (touchMoveRafId !== null) {
+      cancelAnimationFrame(touchMoveRafId);
+      touchMoveRafId = null;
+    }
+    pendingTouchY = null;
+    cachedItemRects = [];
     draggedFriend = null;
     draggedIndex = -1;
     dropGapIndex = -1;
@@ -54,6 +90,10 @@
       next.splice(adjustedInsertIndex, 0, moved);
       friends = next;
       onReorderFriends?.(next);
+      // Flash the placed item with a warm confirmation ring
+      if (lastDroppedTimer) clearTimeout(lastDroppedTimer);
+      lastDroppedId = moved.id;
+      lastDroppedTimer = setTimeout(() => { lastDroppedId = null; }, 900);
     }
 
     resetDragState();
@@ -110,6 +150,7 @@
         longPressTimer = null;
         draggedFriend = currentFriend;
         draggedIndex = currentIndex;
+        cacheTouchRects();
         navigator.vibrate?.(40);
       }, 400);
     }
@@ -124,24 +165,17 @@
       if (draggedIndex === -1) return;
       event.preventDefault();
 
-      if (!containerRef) return;
-
-      const currentY = touch.clientY;
-      const els = containerRef.querySelectorAll<HTMLElement>('.draggable-item');
-      let gap = els.length;
-
-      for (let i = 0; i < els.length; i++) {
-        const rect = els[i].getBoundingClientRect();
-        if (currentY <= rect.top) {
-          gap = i;
-          break;
-        } else if (currentY <= rect.bottom) {
-          gap = currentY < rect.top + rect.height / 2 ? i : i + 1;
-          break;
-        }
+      // Buffer the latest Y and coalesce updates to once per animation frame
+      pendingTouchY = touch.clientY;
+      if (touchMoveRafId === null) {
+        touchMoveRafId = requestAnimationFrame(() => {
+          touchMoveRafId = null;
+          if (pendingTouchY !== null) {
+            updateDropGapFromY(pendingTouchY);
+            pendingTouchY = null;
+          }
+        });
       }
-
-      dropGapIndex = Math.max(0, Math.min(gap, els.length));
     }
 
     function onTouchEnd(event: TouchEvent) {
@@ -213,14 +247,21 @@
     <div class="space-y-3" role="list" bind:this={containerRef} ondragleave={handleDragLeave}>
       {#if friends && friends.length > 0}
         {#each friends as friend, index (friend.id)}
-          {#if draggedIndex !== -1 && dropGapIndex === index && !isNeutralGap(dropGapIndex, draggedIndex)}
-            <div class="mx-2 h-0.5 rounded-full bg-primary/70 transition-all duration-100"></div>
-          {/if}
-          <div
-            class="draggable-item bg-base-300 rounded-box group cursor-move p-4 transition-all duration-200 hover:shadow-md {draggedIndex ===
-            index
-              ? 'dragging opacity-50'
-              : ''}"
+          <!-- Sole direct child required for animate:flip; gap + item nested inside -->
+          <div animate:flip={{ duration: 240, easing: cubicOut }}>
+            {#if draggedIndex !== -1 && dropGapIndex === index && !isNeutralGap(dropGapIndex, draggedIndex)}
+              <div
+                in:scale={{ duration: 160, start: 0.4, easing: cubicOut }}
+                class="mx-2 mb-3 h-0.5 rounded-full bg-primary"
+              ></div>
+            {/if}
+            <div
+              in:fly={{ y: 10, duration: 260, delay: Math.min(index * 45, 220), easing: cubicOut }}
+              class="draggable-item bg-base-300 rounded-box group cursor-move p-4 {draggedIndex === index
+                ? 'dragging opacity-50'
+                : ''} {lastDroppedId === friend.id
+                ? 'just-placed'
+                : ''}"
             use:touchDragAction={isTouch ? [friend, index] : undefined}
             draggable={!isTouch}
             role="button"
@@ -316,10 +357,14 @@
               </div>
             </div>
           </div>
+          </div><!-- end animate:flip wrapper -->
         {/each}
 
         {#if draggedIndex !== -1 && dropGapIndex === friends.length && !isNeutralGap(dropGapIndex, draggedIndex)}
-          <div class="mx-2 h-0.5 rounded-full bg-primary/70 transition-all duration-100"></div>
+          <div
+            in:scale={{ duration: 160, start: 0.4, easing: cubicOut }}
+            class="mx-2 h-0.5 rounded-full bg-primary"
+          ></div>
         {/if}
       {:else}
         <div class="bg-base-300 rounded-box p-6 text-center">
@@ -361,6 +406,11 @@
   :global(.dragging) {
     user-select: none;
     -webkit-user-select: none;
+  }
+
+  :global(.draggable-item.just-placed) {
+    animation: justPlaced 0.85s var(--ease-out-expo);
+    outline-offset: 2px;
   }
 
   @media (hover: none) and (pointer: coarse) {

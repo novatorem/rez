@@ -93,6 +93,22 @@
   transition: transform 0.08s var(--ease-out-quart) !important;
 }
 
+/* ── Drop placement confirmation ──────────────────────────── */
+@keyframes justPlaced {
+  0%   { outline: 2px solid color-mix(in oklch, var(--color-primary) 55%, transparent); }
+  100% { outline: 2px solid color-mix(in oklch, var(--color-primary) 0%, transparent); }
+}
+
+/* ── Live status pulse ─────────────────────────────────────── */
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.animate-live-pulse {
+  animation: livePulse 1.8s ease-in-out infinite;
+}
+
 /* ── Global reduced-motion catch-all ───────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *,
