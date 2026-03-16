@@ -39,9 +39,7 @@ const supabase: Handle = async ({ event, resolve }) => {
             path: '/',
             secure: event.url.protocol === 'https:',
             sameSite: 'lax' as const,
-            domain: host.startsWith('localhost') || host.startsWith('127.0.0.1')
-              ? undefined
-              : host
+            domain: host.startsWith('localhost') || host.startsWith('127.0.0.1') ? undefined : host
           };
 
           event.cookies.set(name, value, secureOptions);

@@ -51,28 +51,28 @@ export interface Database {
         };
         Relationships: [];
       };
-    friend_requests: {
-      Row: {
-        id: string;
-        requester_id: string;
-        target_id: string;
-        created_at: string;
-        updated_at: string;
-      };
-      Insert: {
-        id?: string;
-        requester_id: string;
-        target_id: string;
-        created_at?: string;
-        updated_at?: string;
-      };
-      Update: {
-        id?: string;
-        requester_id?: string;
-        target_id?: string;
-        created_at?: string;
-        updated_at?: string;
-      };
+      friend_requests: {
+        Row: {
+          id: string;
+          requester_id: string;
+          target_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          requester_id: string;
+          target_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          requester_id?: string;
+          target_id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
         Relationships: [
           {
             foreignKeyName: 'friend_requests_requester_id_fkey';

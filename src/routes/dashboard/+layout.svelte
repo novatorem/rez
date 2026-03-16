@@ -1,6 +1,10 @@
 <script>
   import Navigation from '$lib/ui/Navigation.svelte';
-  import { setPendingCount, markUnseen, initFromStorage } from '$lib/friends/pendingCount.svelte.js';
+  import {
+    setPendingCount,
+    markUnseen,
+    initFromStorage
+  } from '$lib/friends/pendingCount.svelte.js';
 
   let { data, children } = $props();
   let { supabase, user } = $derived(data);
@@ -30,12 +34,25 @@
       .channel(`layout-pending-${_user.id}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'friend_requests', filter: `target_id=eq.${_user.id}` },
-        () => { load(); markUnseen(); }
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'friend_requests',
+          filter: `target_id=eq.${_user.id}`
+        },
+        () => {
+          load();
+          markUnseen();
+        }
       )
       .on(
         'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'friend_requests', filter: `target_id=eq.${_user.id}` },
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'friend_requests',
+          filter: `target_id=eq.${_user.id}`
+        },
         load
       )
       .subscribe();

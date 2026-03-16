@@ -1,4 +1,8 @@
-import type { RealtimeChannel, RealtimePostgresChangesPayload, SupabaseClient } from '@supabase/supabase-js';
+import type {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+  SupabaseClient
+} from '@supabase/supabase-js';
 import type { Database } from '../../database.types';
 
 export interface StatusChangePayload {
@@ -136,8 +140,16 @@ export class RealtimeSubscriptionManager {
           table: 'profiles',
           filter: `id=in.(${friendIds.join(',')})`
         },
-        (payload: RealtimePostgresChangesPayload<{ id: string; status: string | null; updated_at: string }>) => {
-          const row = payload.new as { id: string; status: string | null; updated_at: string } | undefined;
+        (
+          payload: RealtimePostgresChangesPayload<{
+            id: string;
+            status: string | null;
+            updated_at: string;
+          }>
+        ) => {
+          const row = payload.new as
+            | { id: string; status: string | null; updated_at: string }
+            | undefined;
           if (row?.id) {
             this.callbacks.onStatusChange?.({
               id: row.id,

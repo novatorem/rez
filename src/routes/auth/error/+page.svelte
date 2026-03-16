@@ -28,13 +28,21 @@
 <div class="flex grow items-center justify-center p-4">
   <div class="card bg-base-100 w-full max-w-md shadow-xl">
     <div class="card-body gap-6 p-8 sm:p-10">
-      <h1 class="text-error text-center text-3xl font-bold tracking-tight">
-        Couldn't sign you in
-      </h1>
+      <h1 class="text-error text-center text-3xl font-bold tracking-tight">Couldn't sign you in</h1>
 
       <div class="alert alert-error" role="alert">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-6 w-6 shrink-0 stroke-current"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
         <div class="flex-1">
           <span class="text-base font-semibold">
@@ -50,7 +58,9 @@
             <div class="mt-3">
               <button
                 class="btn btn-sm btn-outline"
-                onclick={() => { if (debugPanel) debugPanel.openPanel(); }}
+                onclick={() => {
+                  if (debugPanel) debugPanel.openPanel();
+                }}
               >
                 View Debug Info
               </button>
@@ -73,7 +83,10 @@
       {/if}
 
       <div class="flex flex-col gap-3 sm:flex-row sm:justify-center">
-        <a href={resolve('/auth')} class="btn btn-primary h-12 rounded-lg px-8 text-base font-semibold shadow-md">
+        <a
+          href={resolve('/auth')}
+          class="btn btn-primary h-12 rounded-lg px-8 text-base font-semibold shadow-md"
+        >
           Back to sign in
         </a>
         <a href={resolve('/')} class="btn btn-ghost h-12 rounded-lg px-8 text-base font-semibold">
@@ -84,4 +97,4 @@
   </div>
 </div>
 
-<DebugPanel bind:this={debugPanel} hasError={hasError} />
+<DebugPanel bind:this={debugPanel} {hasError} />
