@@ -13,13 +13,12 @@ import https from 'node:https';
 const isDev = process.env.NODE_ENV === 'development';
 const httpsAgent = isDev ? new https.Agent({ rejectUnauthorized: false }) : undefined;
 
+type FetchInitWithAgent = RequestInit & { agent?: import('node:https').Agent };
+
 const customFetch = (input: URL | RequestInfo, init?: RequestInit) => {
   if (isDev) {
-    return fetch(input, {
-      ...init,
-      // @ts-expect-error - Agent is not in standard RequestInit but works with Node.js fetch
-      agent: httpsAgent
-    });
+    const initWithAgent: FetchInitWithAgent = { ...init, agent: httpsAgent };
+    return fetch(input, initWithAgent);
   }
   return fetch(input, init);
 };

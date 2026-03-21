@@ -15,6 +15,7 @@
   import { MAX_STATUS_LENGTH, validateStatus } from '$lib/status/validation';
   import { handleDatabaseError } from '$lib/ui/notifications';
   import ThemeSelect from '$lib/ui/ThemeSelect.svelte';
+  import AvatarSettings from '$lib/ui/AvatarSettings.svelte';
   import { toastStore } from '$lib/ui/toast';
   import { onMount } from 'svelte';
 
@@ -349,6 +350,65 @@
       isUpdatingDisplayName = false;
     }
   };
+
+  const exportAppearanceSettings = () => {
+    const theme = localStorage.getItem('theme') || 'light';
+    const variant = localStorage.getItem('avatar_variant') || 'beam';
+    let colors = ['#FFC8DD', '#BDE0FE', '#A2D2FF', '#FFAFCC', '#CDB4DB'];
+    const storedColors = localStorage.getItem('avatar_colors');
+    if (storedColors) {
+      try {
+        colors = JSON.parse(storedColors);
+      } catch (error) {
+        console.error('Invalid avatar_colors JSON in localStorage', error);
+      }
+    }
+
+    const settings = {
+      theme,
+      avatar_variant: variant,
+      avatar_colors: colors
+    };
+
+    navigator.clipboard
+      .writeText(JSON.stringify(settings, null, 2))
+      .then(() => toastStore.success('Appearance settings copied to clipboard.'))
+      .catch((err) => {
+        console.error('Failed to copy settings', err);
+        toastStore.error('Failed to copy settings to clipboard.');
+      });
+  };
+
+  const handleImportSettingsClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const settings = JSON.parse(text);
+
+      if (settings.theme) {
+        localStorage.setItem('theme', settings.theme);
+        const oneYear = 60 * 60 * 24 * 365;
+        document.cookie = `theme=${settings.theme}; max-age=${oneYear}; path=/; SameSite=Lax`;
+        document.documentElement.setAttribute('data-theme', settings.theme);
+        window.dispatchEvent(new Event('theme-change'));
+      }
+
+      if (settings.avatar_variant) {
+        localStorage.setItem('avatar_variant', settings.avatar_variant);
+      }
+
+      if (settings.avatar_colors && Array.isArray(settings.avatar_colors)) {
+        localStorage.setItem('avatar_colors', JSON.stringify(settings.avatar_colors));
+      }
+
+      toastStore.success('Appearance settings imported. Reloading to apply...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      toastStore.error('Invalid settings in clipboard.');
+      console.error('Import error:', error);
+    }
+  };
 </script>
 
 <div class="container mx-auto max-w-4xl px-4 py-8 sm:px-6">
@@ -432,7 +492,7 @@
                     </label>
                     <div class="join w-full min-w-0">
                       <div class="w-full">
-                        <label class="input validator join-item w-full">
+                        <div class="input validator join-item w-full">
                           <svg
                             class="h-[1em] opacity-50"
                             xmlns="http://www.w3.org/2000/svg"
@@ -461,7 +521,7 @@
                             maxlength={MAX_USERNAME_LENGTH}
                             aria-describedby="username-help"
                           />
-                        </label>
+                        </div>
                       </div>
                       <button
                         class="btn btn-primary join-item"
@@ -516,10 +576,7 @@
                       </button>
                     </div>
                     <div class="label w-full max-w-full">
-                      <span
-                        id="username-help"
-                        class="label-text-alt text-base-content/60 break-anywhere block w-full max-w-full text-sm leading-relaxed break-words hyphens-auto whitespace-normal sm:text-base"
-                      >
+                      <span id="username-help" class="settings-field-hint">
                         3–{MAX_USERNAME_LENGTH} characters. Must start with a letter. Letters, numbers,
                         dots, dashes, and underscores only.
                       </span>
@@ -568,7 +625,7 @@
                     </label>
                     <div class="join w-full min-w-0">
                       <div class="w-full">
-                        <label class="input validator join-item w-full">
+                        <div class="input validator join-item w-full">
                           <svg
                             class="h-[1em] opacity-50"
                             xmlns="http://www.w3.org/2000/svg"
@@ -594,7 +651,7 @@
                             maxlength={MAX_DISPLAY_NAME_LENGTH}
                             aria-describedby="display-name-help"
                           />
-                        </label>
+                        </div>
                       </div>
                       <button
                         class="btn btn-primary join-item"
@@ -649,10 +706,7 @@
                       </button>
                     </div>
                     <div class="label w-full max-w-full">
-                      <span
-                        id="display-name-help"
-                        class="label-text-alt text-base-content/60 break-anywhere block w-full max-w-full text-sm leading-relaxed break-words hyphens-auto whitespace-normal sm:text-base"
-                      >
+                      <span id="display-name-help" class="settings-field-hint">
                         Shown to friends instead of your username. Leave blank to show your
                         username.
                       </span>
@@ -743,10 +797,7 @@
                   </button>
                 </div>
                 <div class="label w-full max-w-full">
-                  <span
-                    id="change-email-help"
-                    class="label-text-alt text-base-content/60 break-anywhere block w-full max-w-full text-sm leading-relaxed break-words hyphens-auto whitespace-normal sm:text-base"
-                  >
+                  <span id="change-email-help" class="settings-field-hint">
                     A confirmation link will be sent to the new address. Your email won't change
                     until you confirm.
                   </span>
@@ -937,10 +988,7 @@
                   {/if}
                 </button>
                 <div class="label w-full max-w-full">
-                  <span
-                    id="quick-status-help"
-                    class="label-text-alt text-base-content/60 break-anywhere block w-full max-w-full text-sm leading-relaxed break-words hyphens-auto whitespace-normal sm:text-base"
-                  >
+                  <span id="quick-status-help" class="settings-field-hint">
                     Leave a field blank to remove that quick status.
                   </span>
                 </div>
@@ -962,8 +1010,59 @@
           >
           Appearance
         </h2>
-        <div class="space-y-6">
-          <ThemeSelect />
+        <div class="space-y-8">
+          <div class="space-y-6">
+            <h3 class="text-base-content/80 border-base-300 border-b pb-2 text-lg font-semibold">
+              Theme
+            </h3>
+            <ThemeSelect />
+          </div>
+
+          <AvatarSettings />
+
+          <div class="border-base-300 mt-6 border-t pt-6">
+            <h3 class="text-base-content/80 mb-4 text-lg font-semibold">Manage Appearance</h3>
+            <div class="flex flex-wrap gap-4">
+              <button class="btn btn-outline" onclick={exportAppearanceSettings} type="button">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  ><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path
+                    d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                  ></path></svg
+                >
+                Copy to clipboard
+              </button>
+
+              <button class="btn btn-outline" onclick={handleImportSettingsClipboard} type="button">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  ><path
+                    d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
+                  ></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg
+                >
+                Paste from clipboard
+              </button>
+            </div>
+            <p class="text-base-content/60 mt-3 text-sm">
+              Copy your theme and avatar settings to use on another device.
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -1012,9 +1111,7 @@
               {/if}
             </button>
             <div class="label w-full max-w-full">
-              <span
-                id="export-help"
-                class="label-text-alt text-base-content/60 break-anywhere block w-full max-w-full text-sm leading-relaxed break-words hyphens-auto whitespace-normal sm:text-base"
+              <span id="export-help" class="settings-field-hint"
                 >Download a copy of your friends, statuses, and account info.</span
               >
             </div>
@@ -1065,10 +1162,7 @@
               Delete Account
             </button>
             <div class="label w-full max-w-full">
-              <span
-                id="delete-account-help"
-                class="label-text-alt text-error break-anywhere block w-full max-w-full text-sm leading-relaxed break-words hyphens-auto whitespace-normal sm:text-base"
-              >
+              <span id="delete-account-help" class="settings-field-hint-error">
                 Deletes your account, all friends, and all statuses. This can't be undone.
               </span>
             </div>
@@ -1115,10 +1209,7 @@
         aria-describedby="delete-password-help"
       />
       <div class="label w-full max-w-full">
-        <span
-          id="delete-password-help"
-          class="label-text-alt text-error break-anywhere block w-full max-w-full text-sm leading-relaxed break-words hyphens-auto whitespace-normal sm:text-base"
-        >
+        <span id="delete-password-help" class="settings-field-hint-error">
           Your account and all its data will be gone permanently.
         </span>
       </div>

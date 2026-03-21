@@ -42,18 +42,15 @@
 </script>
 
 <div class="relative flex grow flex-col overflow-hidden">
-  <!-- Warm background bloom positioned behind the right column -->
   <div class="pointer-events-none absolute inset-0" aria-hidden="true">
     <div
       class="bg-primary/[0.07] absolute -top-32 right-0 h-[700px] w-[700px] translate-x-1/4 rounded-full blur-[120px]"
     ></div>
   </div>
 
-  <!-- Content: vertically centered, two-column on desktop -->
   <div class="relative z-10 flex grow items-center px-6 py-16 sm:px-12 lg:px-16">
     <div class="mx-auto w-full max-w-5xl">
       <div class="grid items-center gap-12 lg:grid-cols-[1fr_360px] lg:gap-20">
-        <!-- Left: Hero text + CTA -->
         <div>
           <p
             class="animate-fade-in-up animate-delay-0 text-primary mb-6 text-xs font-bold tracking-[0.2em] uppercase"
@@ -93,9 +90,7 @@
           </div>
         </div>
 
-        <!-- Right: Live status preview -->
         <div class="animate-fade-in-up animate-delay-4">
-          <!-- "Live now" header -->
           <div class="mb-4 flex items-center gap-2">
             <div class="bg-success animate-live-pulse h-1.5 w-1.5 rounded-full"></div>
             <span class="text-base-content/35 text-xs font-semibold tracking-widest uppercase"
