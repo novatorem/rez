@@ -5,6 +5,7 @@
   import { getDisplayName } from '$lib/ui/notifications';
   import RelativeTime from '$lib/ui/RelativeTime.svelte';
   import Avatar from 'svelte-boring-avatars';
+  import { avatarSettings } from '$lib/stores/avatar.svelte';
   import { flip } from 'svelte/animate';
   import { cubicOut } from 'svelte/easing';
   import { fly, scale } from 'svelte/transition';
@@ -26,7 +27,6 @@
 
   let { friends, deletingFriends, onDeleteFriend, onReorderFriends }: Props = $props();
 
-  // Sorting
   type SortKey = 'time' | 'username' | 'display_name';
   type SortDir = 'asc' | 'desc';
 
@@ -89,7 +89,6 @@
   let touchStartY = 0;
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
-  // Cached item rects - populated at drag start to avoid repeated DOM queries during move
   let cachedItemRects: { top: number; bottom: number; height: number }[] = [];
   let touchMoveRafId: number | null = null;
   let pendingTouchY: number | null = null;
@@ -148,7 +147,6 @@
       friends = next;
       onReorderFriends?.(next);
       sortKey = null;
-      // Flash the placed item with a warm confirmation ring
       if (lastDroppedTimer) clearTimeout(lastDroppedTimer);
       lastDroppedId = moved.id;
       lastDroppedTimer = setTimeout(() => {
@@ -225,7 +223,6 @@
       if (draggedIndex === -1) return;
       event.preventDefault();
 
-      // Buffer the latest Y and coalesce updates to once per animation frame
       pendingTouchY = touch.clientY;
       if (touchMoveRafId === null) {
         touchMoveRafId = requestAnimationFrame(() => {
@@ -402,7 +399,6 @@
     <div class="space-y-3" role="list" bind:this={containerRef} ondragleave={handleDragLeave}>
       {#if friends && friends.length > 0}
         {#each friends as friend, index (friend.id)}
-          <!-- Sole direct child required for animate:flip; gap + item nested inside -->
           <div animate:flip={{ duration: 240, easing: cubicOut }}>
             {#if draggedIndex !== -1 && dropGapIndex === index && !isNeutralGap(dropGapIndex, draggedIndex)}
               <div
@@ -434,10 +430,14 @@
               ondragend={handleDragEnd}
             >
               <div class="flex w-full items-center gap-3">
-                <!-- LEFT: identity cluster (avatar + name) -->
                 <div class="flex w-28 flex-shrink-0 items-center gap-2.5 sm:w-36">
                   <div class="avatar flex-shrink-0">
-                    <Avatar name={friend.id} size={40} variant="beam" />
+                    <Avatar
+                      name={friend.id}
+                      size={40}
+                      variant={avatarSettings.variant}
+                      colors={avatarSettings.colors}
+                    />
                   </div>
                   <div class="min-w-0">
                     <h3 class="truncate text-sm leading-tight font-semibold">
@@ -449,10 +449,8 @@
                   </div>
                 </div>
 
-                <!-- Separator -->
                 <div class="bg-base-content/10 h-8 w-px flex-shrink-0" aria-hidden="true"></div>
 
-                <!-- RIGHT: status + time (dominant) -->
                 <div class="min-w-0 flex-1">
                   {#key friend.status}
                     {#if friend.status}
@@ -479,7 +477,6 @@
                   {/key}
                 </div>
 
-                <!-- Delete spinner (only visible while deleting) -->
                 {#if deletingFriends.has(friend.id)}
                   <span
                     class="loading loading-spinner loading-xs text-base-content/40 flex-shrink-0"
@@ -487,7 +484,6 @@
                 {/if}
               </div>
 
-              <!-- Expand panel: full status + full timestamp -->
               <div
                 class="grid transition-[grid-template-rows] duration-200 ease-out"
                 style="grid-template-rows: {expandedFriendId === friend.id ? '1fr' : '0fr'}"
@@ -543,7 +539,6 @@
               </div>
             </div>
           </div>
-          <!-- end animate:flip wrapper -->
         {/each}
 
         {#if draggedIndex !== -1 && dropGapIndex === friends.length && !isNeutralGap(dropGapIndex, draggedIndex)}

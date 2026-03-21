@@ -176,7 +176,7 @@
   </button>
 
   {#if isOpen}
-    <div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4">
+    <div class="bg-base-content/50 fixed inset-0 z-50 flex items-center justify-center p-4">
       <div class="card bg-base-100 max-h-[90vh] w-full max-w-2xl shadow-2xl">
         <div class="card-body">
           <div class="card-title mb-4 justify-between">

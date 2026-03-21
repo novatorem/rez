@@ -1,32 +1,27 @@
 {
-	// Editor settings
-	"editor.formatOnSave": true,
-	"editor.insertSpaces": false,
-	"editor.tabSize": 2,
-	"editor.detectIndentation": false,
-	"editor.codeActionsOnSave": {
-		"source.fixAll": "explicit",
-		"source.organizeImports": "explicit"
-	},
+  "editor.formatOnSave": true,
+  "editor.insertSpaces": false,
+  "editor.tabSize": 2,
+  "editor.detectIndentation": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit"
+  },
 
-	// TypeScript settings
-	"typescript.updateImportsOnFileMove.enabled": "always",
-	"typescript.suggest.autoImports": true,
-	"typescript.preferences.importModuleSpecifier": "shortest",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.suggest.autoImports": true,
+  "typescript.preferences.importModuleSpecifier": "shortest",
 
-	// Svelte settings
-	"[svelte]": {
-		"editor.defaultFormatter": "svelte.svelte-vscode"
-	},
-	"svelte.plugin.svelte.format.enable": true,
-	"svelte.plugin.svelte.defaultScriptLanguage": "ts",
+  "[svelte]": {
+    "editor.defaultFormatter": "svelte.svelte-vscode"
+  },
+  "svelte.plugin.svelte.format.enable": true,
+  "svelte.plugin.svelte.defaultScriptLanguage": "ts",
 
-	// File handling
-	"files.eol": "\n",
-	"files.insertFinalNewline": true,
-	"files.trimTrailingWhitespace": true,
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
 
-	// ESLint settings
-	"eslint.validate": ["javascript", "typescript", "svelte"],
-	"cSpell.words": ["PGRST", "rezonate", "supabase"]
+  "eslint.validate": ["javascript", "typescript", "svelte"],
+  "cSpell.words": ["PGRST", "rezonate", "supabase"]
 }
