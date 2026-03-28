@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment';
+  import { resolve } from '$app/paths';
   import { formatStatusUpdatedAtTooltip } from '$lib/status/formatting';
   import { getDisplayName } from '$lib/ui/notifications';
   import RelativeTime from '$lib/ui/RelativeTime.svelte';
@@ -86,7 +87,6 @@
   let containerRef: HTMLDivElement | null = $state(null);
 
   let touchStartY = 0;
-  let touchStartX = 0;
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Cached item rects - populated at drag start to avoid repeated DOM queries during move
@@ -95,33 +95,6 @@
   let pendingTouchY: number | null = null;
 
   const isTouch = browser && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-
-  // Context menu
-  let contextMenuFriendId: string | null = $state(null);
-  let contextMenuPos = $state({ x: 0, y: 0 });
-
-  function openContextMenu(friendId: string, x: number, y: number) {
-    contextMenuFriendId = friendId;
-    contextMenuPos = { x, y };
-  }
-
-  function closeContextMenu() {
-    contextMenuFriendId = null;
-  }
-
-  function handleContextMenu(event: MouseEvent, friendId: string) {
-    event.preventDefault();
-    openContextMenu(friendId, event.clientX, event.clientY);
-  }
-
-  $effect(() => {
-    if (!contextMenuFriendId) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') closeContextMenu();
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
 
   function cacheTouchRects() {
     if (!containerRef) return;
@@ -233,7 +206,6 @@
     function onTouchStart(event: TouchEvent) {
       if (!currentFriend || currentIndex === -1) return;
       touchStartY = event.touches[0].clientY;
-      touchStartX = event.touches[0].clientX;
       longPressTimer = setTimeout(() => {
         longPressTimer = null;
         draggedFriend = currentFriend;
@@ -273,9 +245,7 @@
       }
       if (draggedIndex === -1) return;
       event.preventDefault();
-      // Long-press without movement → context menu
       if (dropGapIndex === -1) {
-        openContextMenu(currentFriend!.id, touchStartX, touchStartY);
         resetDragState();
         return;
       }
@@ -458,7 +428,6 @@
                   toggleExpand(friend.id);
                 }
               }}
-              oncontextmenu={(e) => handleContextMenu(e, friend.id)}
               ondragstart={(e) => handleDragStart(e, friend, index)}
               ondragover={(e) => handleDragOver(e, index)}
               ondrop={handleDrop}
@@ -497,7 +466,7 @@
                             data-tip={formatStatusUpdatedAtTooltip(friend.status_updated_at)}
                           >
                             <span
-                              class="text-base-content/40 cursor-help text-xs whitespace-nowrap flex-shrink-0"
+                              class="text-base-content/40 flex-shrink-0 cursor-help text-xs whitespace-nowrap"
                             >
                               <RelativeTime timestamp={friend.status_updated_at} />
                             </span>
@@ -543,7 +512,7 @@
                       </div>
                       <button
                         type="button"
-                        class="btn btn-ghost btn-xs btn-circle text-base-content/30 hover:text-error hover:bg-transparent flex-shrink-0 sm:hidden"
+                        class="btn btn-ghost btn-xs btn-circle text-base-content/30 hover:text-error flex-shrink-0 hover:bg-transparent"
                         aria-label="Remove {getDisplayName(friend.display_name, friend.username)}"
                         onclick={(e) => {
                           e.stopPropagation();
@@ -561,7 +530,11 @@
                           aria-hidden="true"
                         >
                           <circle cx="12" cy="12" r="10" />
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 9l-6 6M9 9l6 6" />
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M15 9l-6 6M9 9l6 6"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -583,60 +556,14 @@
         <div class="bg-base-300 rounded-box p-6 text-center">
           <p class="text-base-content/70 mb-1 font-medium">No friends yet</p>
           <p class="text-base-content/50 text-sm">
-            <a href="/dashboard/friends" class="link link-primary">Add friends</a> by searching for their
-            username.
+            <a href={resolve('/dashboard/friends')} class="link link-primary">Add friends</a> by searching
+            for their username.
           </p>
         </div>
       {/if}
     </div>
   </div>
 </div>
-
-<!-- Context menu -->
-{#if contextMenuFriendId}
-  {@const ctxFriend = friends.find((f) => f.id === contextMenuFriendId)}
-  <!-- Backdrop -->
-  <div class="fixed inset-0 z-40" onclick={closeContextMenu} aria-hidden="true"></div>
-  <!-- Menu -->
-  <div
-    class="bg-base-100 border-base-300 rounded-box fixed z-50 min-w-[160px] overflow-hidden border py-1 shadow-lg"
-    style="left: {Math.min(
-      contextMenuPos.x,
-      (typeof window !== 'undefined' ? window.innerWidth : 400) - 168
-    )}px; top: {contextMenuPos.y + 8}px"
-    role="menu"
-  >
-    {#if ctxFriend}
-      <div class="text-base-content/40 px-3 py-1.5 text-xs font-medium">
-        {getDisplayName(ctxFriend.display_name, ctxFriend.username)}
-      </div>
-      <div class="bg-base-300/50 my-1 h-px"></div>
-      <button
-        class="hover:bg-base-200 text-error flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors"
-        role="menuitem"
-        onclick={() => {
-          onDeleteFriend(contextMenuFriendId!);
-          closeContextMenu();
-        }}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-3.5 w-3.5 stroke-current"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"
-          />
-        </svg>
-        Remove friend
-      </button>
-    {/if}
-  </div>
-{/if}
 
 <style>
   :global(.draggable-item) {

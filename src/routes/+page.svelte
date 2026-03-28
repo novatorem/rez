@@ -4,13 +4,27 @@
   const sequences = [
     ['at the coffee shop ☕', 'grabbing lunch 🍜', 'heading home', 'on the couch 🛋️'],
     ['just finished a run 🏃', 'post-run smoothie 🥤', 'gym time 💪', 'stretching 🙆'],
-    ['working from home today', 'on a call 📞', 'taking a break ☕', 'wrapping up ✅'],
+    ['working from home today', 'on a call 📞', 'taking a break ☕', 'wrapping up ✅']
   ];
 
   let pills = $state([
-    { id: 0, key: 0, initials: 'A', bg: 'bg-warning/20', color: 'text-warning', text: sequences[0][0] },
-    { id: 1, key: 0, initials: 'M', bg: 'bg-success/20', color: 'text-success', text: sequences[1][0] },
-    { id: 2, key: 0, initials: 'J', bg: 'bg-info/20', color: 'text-info', text: sequences[2][0] },
+    {
+      id: 0,
+      key: 0,
+      initials: 'A',
+      bg: 'bg-warning/20',
+      color: 'text-warning',
+      text: sequences[0][0]
+    },
+    {
+      id: 1,
+      key: 0,
+      initials: 'M',
+      bg: 'bg-success/20',
+      color: 'text-success',
+      text: sequences[1][0]
+    },
+    { id: 2, key: 0, initials: 'J', bg: 'bg-info/20', color: 'text-info', text: sequences[2][0] }
   ]);
 
   const counters = [0, 0, 0];
@@ -39,7 +53,6 @@
   <div class="relative z-10 flex grow items-center px-6 py-16 sm:px-12 lg:px-16">
     <div class="mx-auto w-full max-w-5xl">
       <div class="grid items-center gap-12 lg:grid-cols-[1fr_360px] lg:gap-20">
-
         <!-- Left: Hero text + CTA -->
         <div>
           <p
@@ -108,7 +121,6 @@
             {/each}
           </div>
         </div>
-
       </div>
     </div>
   </div>

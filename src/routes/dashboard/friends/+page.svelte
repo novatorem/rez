@@ -1,7 +1,11 @@
 <script lang="ts">
   import FriendRequestsSection from '$lib/friends/components/Requests.svelte';
   import FriendRequestsSectionSkeleton from '$lib/friends/components/RequestsSkeleton.svelte';
-  import { DashboardDataLoader, type FriendRequest, type SentFriendRequest } from '$lib/dashboard/loader';
+  import {
+    DashboardDataLoader,
+    type FriendRequest,
+    type SentFriendRequest
+  } from '$lib/dashboard/loader';
   import { handleDatabaseError } from '$lib/ui/notifications';
   import { setPendingCount, markSeen, getPendingCount } from '$lib/friends/pendingCount.svelte.js';
 

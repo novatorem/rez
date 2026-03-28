@@ -250,7 +250,7 @@
                 />
                 <button
                   type="button"
-                  class="text-base-content/50 hover:text-base-content absolute top-1/2 right-1 -translate-y-1/2 flex min-h-[44px] min-w-[44px] items-center justify-center transition-colors"
+                  class="text-base-content/50 hover:text-base-content absolute top-1/2 right-1 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center transition-colors"
                   onclick={() => (showLoginPassword = !showLoginPassword)}
                   aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
                 >
@@ -390,10 +390,8 @@
                 />
               </svg>
               <span class="text-base">{signupSuccess}</span>
-              <button
-                class="btn btn-sm btn-ghost"
-                onclick={clearErrors}
-                aria-label="Dismiss">✕</button
+              <button class="btn btn-sm btn-ghost" onclick={clearErrors} aria-label="Dismiss"
+                >✕</button
               >
             </div>
           {/if}
@@ -518,7 +516,7 @@
                 />
                 <button
                   type="button"
-                  class="text-base-content/50 hover:text-base-content absolute top-1/2 right-1 -translate-y-1/2 flex min-h-[44px] min-w-[44px] items-center justify-center transition-colors"
+                  class="text-base-content/50 hover:text-base-content absolute top-1/2 right-1 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center transition-colors"
                   onclick={() => (showSignupPassword = !showSignupPassword)}
                   aria-label={showSignupPassword ? 'Hide password' : 'Show password'}
                 >

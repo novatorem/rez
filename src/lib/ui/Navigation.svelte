@@ -33,26 +33,36 @@
 
 <nav class="navbar bg-base-200 sticky top-0 z-50 shadow-sm">
   <div class="navbar-start">
-    <a href={resolve('/dashboard')} class="btn btn-ghost text-primary text-sm font-bold uppercase tracking-[0.2em]">Rez</a>
+    <a
+      href={resolve('/dashboard')}
+      class="btn btn-ghost text-primary text-sm font-bold tracking-[0.2em] uppercase">Rez</a
+    >
   </div>
   <div class="navbar-end">
     <!-- Desktop links -->
-    <div class="hidden sm:flex items-center gap-1">
+    <div class="hidden items-center gap-1 sm:flex">
       <div class="indicator">
         <a
           href={resolve('/dashboard/friends')}
-          class="btn btn-ghost btn-sm {page.url.pathname.startsWith('/dashboard/friends') ? 'btn-active' : ''}"
+          class="btn btn-ghost btn-sm {page.url.pathname.startsWith('/dashboard/friends')
+            ? 'btn-active'
+            : ''}"
           aria-current={page.url.pathname.startsWith('/dashboard/friends') ? 'page' : undefined}
-        >Friends</a>
+          >Friends</a
+        >
         {#if getHasUnseen()}
-          <span class="badge badge-error badge-xs indicator-item" aria-label="New friend request"></span>
+          <span class="badge badge-error badge-xs indicator-item" aria-label="New friend request"
+          ></span>
         {/if}
       </div>
       <a
         href={resolve('/dashboard/settings')}
-        class="btn btn-ghost btn-sm {page.url.pathname.startsWith('/dashboard/settings') ? 'btn-active' : ''}"
+        class="btn btn-ghost btn-sm {page.url.pathname.startsWith('/dashboard/settings')
+          ? 'btn-active'
+          : ''}"
         aria-current={page.url.pathname.startsWith('/dashboard/settings') ? 'page' : undefined}
-      >Settings</a>
+        >Settings</a
+      >
       <button class="btn btn-ghost btn-sm" onclick={logout}>Sign out</button>
     </div>
 
@@ -68,7 +78,7 @@
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
-            ><path
+              ><path
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
@@ -77,17 +87,30 @@
             >
           </button>
           {#if getHasUnseen()}
-            <span class="badge badge-error badge-xs indicator-item" aria-label="New friend request"></span>
+            <span class="badge badge-error badge-xs indicator-item" aria-label="New friend request"
+            ></span>
           {/if}
         </div>
-        <ul class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-44 p-2 shadow">
+        <ul class="menu dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-48 p-2 shadow">
           <li>
             <a
               href={resolve('/dashboard/friends')}
               aria-current={page.url.pathname.startsWith('/dashboard/friends') ? 'page' : undefined}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+                />
               </svg>
               Friends
               {#if getHasUnseen()}
@@ -98,7 +121,9 @@
           <li>
             <a
               href={resolve('/dashboard/settings')}
-              aria-current={page.url.pathname.startsWith('/dashboard/settings') ? 'page' : undefined}
+              aria-current={page.url.pathname.startsWith('/dashboard/settings')
+                ? 'page'
+                : undefined}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -125,7 +150,24 @@
             </a>
           </li>
           <li>
-            <button onclick={logout}>Sign out</button>
+            <button onclick={logout}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
+              </svg>
+              Sign out
+            </button>
           </li>
         </ul>
       </div>
