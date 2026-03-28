@@ -3,6 +3,7 @@
   import { getDisplayName, handleDatabaseError, NotificationManager } from '$lib/ui/notifications';
   import type { SupabaseClient, User } from '@supabase/supabase-js';
   import Avatar from 'svelte-boring-avatars';
+  import { avatarSettings } from '$lib/stores/avatar.svelte';
   import { cubicOut } from 'svelte/easing';
   import { fly } from 'svelte/transition';
 
@@ -271,7 +272,7 @@
     <form onsubmit={handleFriendRequest} class="mb-2">
       <div class="join w-full">
         <div class="w-full">
-          <label class="input validator join-item w-full">
+          <div class="input validator join-item w-full">
             <svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
               <g
                 stroke-linejoin="round"
@@ -299,7 +300,7 @@
               autocapitalize="none"
               spellcheck="false"
             />
-          </label>
+          </div>
         </div>
         <button
           class="btn btn-neutral join-item"
@@ -340,7 +341,12 @@
             <div class="flex w-full items-center justify-between gap-3">
               <div class="flex min-w-0 flex-1 items-center gap-3">
                 <div class="avatar flex-shrink-0">
-                  <Avatar name={request.requester_id} size={40} variant="beam" />
+                  <Avatar
+                    name={request.requester_id}
+                    size={40}
+                    variant={avatarSettings.variant}
+                    colors={avatarSettings.colors}
+                  />
                 </div>
                 <div class="flex min-w-0 flex-col">
                   <span class="truncate"
@@ -422,7 +428,12 @@
             <div class="flex w-full items-center justify-between gap-3">
               <div class="flex flex-1 items-center gap-3">
                 <div class="avatar">
-                  <Avatar name={request.target_id} size={40} variant="beam" />
+                  <Avatar
+                    name={request.target_id}
+                    size={40}
+                    variant={avatarSettings.variant}
+                    colors={avatarSettings.colors}
+                  />
                 </div>
                 <div class="flex flex-col">
                   <span>{getDisplayName(request.target_display_name, request.target_username)}</span

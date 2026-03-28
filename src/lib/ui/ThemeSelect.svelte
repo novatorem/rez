@@ -35,7 +35,7 @@
   <div
     tabindex="0"
     role="button"
-    class="btn group btn-lg btn-ghost w-full justify-between gap-3 px-3"
+    class="btn group btn-lg btn-ghost border-base-content/20 hover:border-base-content/35 w-full justify-between gap-3 border px-3"
     aria-label="Change Theme"
   >
     <div class="flex items-center gap-3">
@@ -60,7 +60,7 @@
     </svg>
   </div>
   <div
-    class="dropdown-content bg-base-200 text-base-content rounded-box h-[30.5rem] max-h-[calc(100dvh-8.6rem)] w-full overflow-y-auto border-[length:var(--border)] border-white/5 shadow-2xl outline-[length:var(--border)] outline-black/5"
+    class="dropdown-content bg-base-200 text-base-content rounded-box border-base-content/20 h-[30.5rem] max-h-[calc(100dvh-8.6rem)] w-full overflow-y-auto border shadow-2xl"
   >
     <ul class="menu w-full">
       <li class="menu-title text-xs">Theme</li>

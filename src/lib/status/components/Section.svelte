@@ -27,21 +27,19 @@
   let successTimer: ReturnType<typeof setTimeout> | null = null;
 
   let statusCharacterCount = $derived(statusInputText?.length ?? 0);
-  // Show counter only when within 14 chars of the limit - enough notice, no noise otherwise
-  let showCounter = $derived(statusCharacterCount >= MAX_STATUS_LENGTH - 14);
+  let showCharCountNearLimit = $derived(statusCharacterCount >= MAX_STATUS_LENGTH - 14);
   let charsRemaining = $derived(MAX_STATUS_LENGTH - statusCharacterCount);
 
-  // Track currentStatus changes to flash a success checkmark on the submit button
-  let prevStatus: string | undefined;
+  let lastKnownStatus: string | undefined;
   $effect(() => {
-    if (prevStatus !== undefined && currentStatus !== prevStatus) {
+    if (lastKnownStatus !== undefined && currentStatus !== lastKnownStatus) {
       if (successTimer) clearTimeout(successTimer);
       showSuccess = true;
       successTimer = setTimeout(() => {
         showSuccess = false;
       }, 700);
     }
-    prevStatus = currentStatus;
+    lastKnownStatus = currentStatus;
   });
 
   const handleQuickStatusChange = (statusText: string, statusId: string) => {
@@ -124,7 +122,7 @@
             maxlength={MAX_STATUS_LENGTH}
             required
           />
-          {#if showCounter}
+          {#if showCharCountNearLimit}
             <span
               transition:fly={{ x: 4, duration: 140, easing: cubicOut }}
               class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs tabular-nums select-none {charsRemaining <

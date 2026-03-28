@@ -24,7 +24,6 @@
     }
   });
 
-  // Mark seen whenever this page is mounted or count changes while here
   $effect(() => {
     getPendingCount();
     markSeen();

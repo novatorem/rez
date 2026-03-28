@@ -39,7 +39,6 @@
     >
   </div>
   <div class="navbar-end">
-    <!-- Desktop links -->
     <div class="hidden items-center gap-1 sm:flex">
       <div class="indicator">
         <a
@@ -66,7 +65,6 @@
       <button class="btn btn-ghost btn-sm" onclick={logout}>Sign out</button>
     </div>
 
-    <!-- Mobile hamburger -->
     <div class="sm:hidden">
       <div class="dropdown dropdown-end">
         <div class="indicator">

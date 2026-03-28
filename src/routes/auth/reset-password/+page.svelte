@@ -132,7 +132,7 @@
               />
               <button
                 type="button"
-                class="text-base-content/50 hover:text-base-content absolute top-1/2 right-1 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center transition-colors"
+                class="input-trailing-icon-btn"
                 onclick={() => (showNewPassword = !showNewPassword)}
                 aria-label={showNewPassword ? 'Hide password' : 'Show password'}
               >
@@ -215,7 +215,7 @@
               />
               <button
                 type="button"
-                class="text-base-content/50 hover:text-base-content absolute top-1/2 right-1 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center transition-colors"
+                class="input-trailing-icon-btn"
                 onclick={() => (showConfirmPassword = !showConfirmPassword)}
                 aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >

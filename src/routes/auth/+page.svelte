@@ -92,11 +92,9 @@
 </script>
 
 <div class="flex grow">
-  <!-- Form panel -->
   <div
     class="bg-base-100 flex flex-1 flex-col items-center justify-center overflow-y-auto p-6 py-10 sm:p-10"
   >
-    <!-- Brand eyebrow -->
     <div class="mb-8 w-full max-w-sm">
       <p class="text-primary text-xs font-bold tracking-[0.2em] uppercase">Rezonate</p>
     </div>
@@ -250,7 +248,7 @@
                 />
                 <button
                   type="button"
-                  class="text-base-content/50 hover:text-base-content absolute top-1/2 right-1 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center transition-colors"
+                  class="input-trailing-icon-btn"
                   onclick={() => (showLoginPassword = !showLoginPassword)}
                   aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
                 >
@@ -516,7 +514,7 @@
                 />
                 <button
                   type="button"
-                  class="text-base-content/50 hover:text-base-content absolute top-1/2 right-1 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center transition-colors"
+                  class="input-trailing-icon-btn"
                   onclick={() => (showSignupPassword = !showSignupPassword)}
                   aria-label={showSignupPassword ? 'Hide password' : 'Show password'}
                 >

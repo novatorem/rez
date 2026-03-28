@@ -16,7 +16,6 @@
 
   const allDone = $derived(hasStatus && hasFriends);
 
-  // Auto-dismiss once both tasks are complete (after a short delay so user sees the completion)
   $effect(() => {
     if (allDone && !dismissed) {
       const timer = setTimeout(() => {

@@ -3,18 +3,15 @@
   themes: all;
 }
 
-/* ── Typography ────────────────────────────────────────────── */
 @theme {
   --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif;
 }
 
-/* ── Easing tokens ─────────────────────────────────────────── */
 :root {
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ── Keyframes ─────────────────────────────────────────────── */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -59,7 +56,6 @@
   }
 }
 
-/* ── Animation utilities ───────────────────────────────────── */
 .animate-fade-in-up {
   animation: fadeInUp 0.6s var(--ease-out-expo) both;
 }
@@ -68,7 +64,6 @@
   animation: fadeInUp 0.35s var(--ease-out-expo) both;
 }
 
-/* Animation delay utilities */
 .animate-delay-0 {
   animation-delay: 0ms;
 }
@@ -97,13 +92,11 @@
   animation: modalIn 0.28s var(--ease-out-quart) both;
 }
 
-/* ── Button press micro-interaction ───────────────────────── */
 .btn:not(:disabled):active {
   transform: scale(0.96);
   transition: transform 0.08s var(--ease-out-quart) !important;
 }
 
-/* ── Drop placement confirmation ──────────────────────────── */
 @keyframes justPlaced {
   0% {
     outline: 2px solid color-mix(in oklch, var(--color-primary) 55%, transparent);
@@ -113,7 +106,6 @@
   }
 }
 
-/* ── Live status pulse ─────────────────────────────────────── */
 @keyframes livePulse {
   0%,
   100% {
@@ -128,7 +120,22 @@
   animation: livePulse 1.8s ease-in-out infinite;
 }
 
-/* ── Global reduced-motion catch-all ───────────────────────── */
+@layer components {
+  .settings-field-hint {
+    overflow-wrap: anywhere;
+    @apply text-base-content/60 block w-full max-w-full text-sm leading-relaxed break-words hyphens-auto whitespace-normal sm:text-base;
+  }
+
+  .settings-field-hint-error {
+    overflow-wrap: anywhere;
+    @apply text-error block w-full max-w-full text-sm leading-relaxed break-words hyphens-auto whitespace-normal sm:text-base;
+  }
+
+  .input-trailing-icon-btn {
+    @apply text-base-content/50 hover:text-base-content absolute top-1/2 right-1 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center transition-colors;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
